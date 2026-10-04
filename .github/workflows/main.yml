@@ -2,6 +2,7 @@ name: Build Firmware
 
 on:
   push:
+    branches: [main]   # other branches are built through their pull request
   pull_request:
   workflow_dispatch:
 
