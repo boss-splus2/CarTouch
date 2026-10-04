@@ -5,6 +5,21 @@
 #include <stdint.h>
 #include <string.h>
 
+// A command label is a machine key (e.g. "lock_all"). Only letters, digits,
+// '_', '-', '.' and space are accepted, so a label can never carry HTML or
+// quote characters into the web page (defence in depth next to escapeHtml()).
+static inline bool ctLabelIsSafe(const char* label) {
+    if (!label || label[0] == '\0') return false;
+    for (const char* c = label; *c; ++c) {
+        const char ch = *c;
+        const bool ok = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+                        (ch >= '0' && ch <= '9') ||
+                        ch == '_' || ch == '-' || ch == '.' || ch == ' ';
+        if (!ok) return false;
+    }
+    return true;
+}
+
 struct CtJsonCommandFields {
     const char* label = nullptr;
     const char* displayName = nullptr;
@@ -31,6 +46,7 @@ static inline bool ctValidateImportedCommand(JsonObjectConst item, CtJsonCommand
     const char* status = item["status"].as<const char*>();
 
     if (!label || !display || !status || strlen(label) == 0 || strlen(label) >= 32) return false;
+    if (!ctLabelIsSafe(label)) return false;
     if (strlen(display) >= 48) return false;
     if (canId < 0 || (uint32_t)canId > (item["extended"].as<bool>() ? 0x1FFFFFFFu : 0x7FFu)) return false;
     if (length < 0 || length > 8) return false;

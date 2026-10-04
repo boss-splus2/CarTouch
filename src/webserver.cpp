@@ -31,6 +31,8 @@
 #include "ct_can_record.h"
 #include "dbc_store.h"
 #include "ct_http_body_limit.h"
+#include "ct_origin.h"
+#include "ct_json_validation.h"
 #include "wifi_manager.h"
 
 extern WiFiManager wifiManager;    // defined in main.cpp
@@ -62,6 +64,28 @@ public:
     void handleRequest(AsyncWebServerRequest* request) override {
         request->send(413, "application/json",
                       "{\"error\":\"Request body exceeds the maximum accepted size\"}");
+    }
+};
+
+// Refuses state-changing requests (POST/PUT/PATCH/DELETE) that a browser sends
+// from another website. Basic-Auth credentials are remembered by the browser
+// and attached automatically, so without this check any web page opened on a
+// phone that is connected to the CarTouch Wi-Fi could send commands.
+// Requests without an Origin header (curl, scripts) pass; they still need login.
+class CrossOriginGuardHandler : public AsyncWebHandler {
+public:
+    bool canHandle(AsyncWebServerRequest* request) const override {
+        const auto m = request->method();
+        if (m != HTTP_POST && m != HTTP_PUT && m != HTTP_PATCH && m != HTTP_DELETE) return false;
+        if (!request->hasHeader("Origin")) return false;
+        const String origin = request->header("Origin");
+        const String host = request->host();
+        return !ctOriginAllowed(origin.c_str(), host.c_str());
+    }
+
+    void handleRequest(AsyncWebServerRequest* request) override {
+        request->send(403, "application/json",
+                      "{\"error\":\"Cross-site request refused\"}");
     }
 };
 
@@ -457,6 +481,7 @@ void WebServerManager::_removeClientAuth(uint32_t clientId) {
 void WebServerManager::begin(uint16_t port) {
     Serial.println("[WEB] Starting web server...");
 
+    _server.addHandler(new CrossOriginGuardHandler());
     _server.addHandler(new HttpBodyLimitHandler());
 
     // -- WebSocket ----------------------------------------------------------
@@ -1192,6 +1217,11 @@ void WebServerManager::_registerCustomVehicleRoutes() {
                 "{\"error\":\"Command label length is invalid\"}");
             return;
         }
+        if (!ctLabelIsSafe(label.c_str())) {
+            request->send(400, "application/json",
+                "{\"error\":\"Command label may only contain letters, digits, space, _ - .\"}");
+            return;
+        }
         strncpy(cmd.label, label.c_str(), sizeof(cmd.label) - 1);
         cmd.label[sizeof(cmd.label) - 1] = '\0';
         strncpy(cmd.displayName, displayName.c_str(), sizeof(cmd.displayName) - 1);
@@ -1720,6 +1750,10 @@ void WebServerManager::_handleLearnModeMessage(AsyncWebSocketClient* client, Jso
         const char* displayName = doc["displayName"] | label;
         if (strlen(label) == 0) {
             client->printf("{\"type\":\"learn_error\",\"message\":\"Command label is required\"}");
+            return;
+        }
+        if (!ctLabelIsSafe(label)) {
+            client->printf("{\"type\":\"learn_error\",\"message\":\"Command label may only contain letters, digits, space, _ - .\"}");
             return;
         }
         uint8_t profileId;
