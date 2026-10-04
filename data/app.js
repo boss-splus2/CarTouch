@@ -1251,9 +1251,10 @@ async function refreshCustomVehicleList() {
 }
 
 function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str || '';
-    return div.innerHTML;
+    // Also converts quotes, so the result is safe inside HTML attributes.
+    return String(str ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
 }
 
 async function createNewProfile() {
