@@ -45,13 +45,12 @@
 // Login brute-force protection.
 // Applies to every entry point that directly compares a submitted
 // password against cfg->webPass: Basic-Auth on "/" and on every route
-// behind _authenticate(), and the "/login" form. Intentionally a single
-// global counter, not per-IP: this is a single-owner embedded device
-// with at most a handful of WiFi clients, and per-IP tracking would add
-// state/memory for no real benefit here (an attacker can trivially
-// rotate source IP on the same AP anyway).
+// behind _authenticate(), and the "/login" form. Failures are counted
+// per client IP (small LRU table), so one device guessing wrong passwords
+// cannot lock the owner out.
 #define LOGIN_MAX_ATTEMPTS 5        // Failed attempts allowed before lockout
 #define LOGIN_LOCKOUT_MS   30000    // Lockout duration once the limit is hit, ms (30s)
+#define LOGIN_TRACK_SLOTS  8        // Client IPs tracked at once (oldest entry is replaced)
 
 typedef void (*WebCommandCallback)(const char* command);
 
@@ -118,6 +117,9 @@ public:
     void attachCanService(CANService* canService);
     uint8_t getClientCount();
 
+    /** True once if authenticated web traffic arrived since the last call (keeps auto-sleep away). */
+    bool consumeActivity() { const bool a = _activity; _activity = false; return a; }
+
     /**
      * Attaches the Learn Mode / custom-profile modules. Must be called
      * once in setup(), before begin() (same pattern as
@@ -160,8 +162,16 @@ private:
     // Login brute-force protection state (see LOGIN_MAX_ATTEMPTS above).
     // Shared across "/", "/login" and _authenticate() - all funnel
     // through _isLoginLocked()/_registerLoginFailure()/_registerLoginSuccess().
-    uint8_t   _loginFailCount;
-    uint32_t  _loginLockoutUntil;    // 0 = not locked; otherwise millis() timestamp when lockout ends
+    struct LoginTrack {
+        bool     used;
+        uint32_t ip;
+        uint8_t  fails;
+        uint32_t lockUntil;    // 0 = not locked; otherwise millis() timestamp when lockout ends
+        uint32_t lastSeen;
+    };
+    LoginTrack _loginTrack[LOGIN_TRACK_SLOTS];
+    LoginTrack* _loginSlot(uint32_t ip, bool create);
+    volatile bool _activity;    // set by authenticated web traffic, read by loop() for auto-sleep
 
     // Auth state for each connected WebSocket client
     WsClientAuth _clientAuth[WS_MAX_CLIENTS];
@@ -207,9 +217,9 @@ private:
     bool      _isValidSessionToken(const char* token);
 
     // Login brute-force protection (external review finding A)
-    bool  _isLoginLocked(uint32_t& remainingMs);
-    void  _registerLoginFailure();
-    void  _registerLoginSuccess();
+    bool  _isLoginLocked(uint32_t ip, uint32_t& remainingMs);
+    void  _registerLoginFailure(uint32_t ip);
+    void  _registerLoginSuccess(uint32_t ip);
 
     WsClientAuth* _findOrCreateClientAuth(uint32_t clientId);
     WsClientAuth* _findClientAuth(uint32_t clientId);

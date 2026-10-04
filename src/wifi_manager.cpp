@@ -58,6 +58,7 @@ void WiFiManager::_startAP() {
     bool result = WiFi.softAP(WIFI_AP_NAME, WIFI_AP_PASSWORD);
 
     if (result) {
+        _apUp = true;
         _state = CT_WIFI_AP;
         Serial.printf("[WiFi] Access Point: %s | IP: %s\n",
                       WIFI_AP_NAME, WiFi.softAPIP().toString().c_str());
@@ -72,18 +73,28 @@ void WiFiManager::_startAP() {
 // ○○○○○○○○○○ Station mode
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
+void WiFiManager::_beginSta(const char* ssid, const char* pass) {
+    WiFi.mode(WIFI_AP_STA);
+    if (!_apUp) _apUp = WiFi.softAP(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+    WiFi.begin(ssid, pass);
+    _connecting = true;
+    _connectStart = millis();
+}
+
+// Boot-time connect: waits (setup() only; the watchdog is not running yet).
+// The access point stays up beside the router connection, so the device is
+// always reachable at its own network even if the router goes away.
 void WiFiManager::_startSTA() {
     AppConfig* cfg = getConfig();
 
     if (strlen(cfg->wifiSSID) == 0) {
-        Serial.println("[WiFi] No saved SSID - falling back to AP mode");
+        Serial.println("[WiFi] No saved SSID - AP mode");
         _startAP();
         return;
     }
 
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(cfg->wifiSSID, cfg->wifiPassword);
-
+    _startAP();
+    _beginSta(cfg->wifiSSID, cfg->wifiPassword);
     Serial.printf("[WiFi] Connecting to %s...\n", cfg->wifiSSID);
 
     int retry = 0;
@@ -92,14 +103,98 @@ void WiFiManager::_startSTA() {
         Serial.print(".");
         retry++;
     }
+    _connecting = false;
+    _lastAttempt = millis();
 
     if (WiFi.status() == WL_CONNECTED) {
         _state = CT_WIFI_STA;
-        Serial.printf("\n[WiFi] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
+        Serial.printf("\n[WiFi] Connected! IP: %s (AP %s still on)\n",
+                      WiFi.localIP().toString().c_str(), WiFi.softAPIP().toString().c_str());
     } else {
-        _state = CT_WIFI_STA_FAIL;
-        getErrorLog()->log(LOG_CAT_WIFI, LOG_WARN, "Connect failed - falling back to AP mode");
-        _startAP();
+        getErrorLog()->log(LOG_CAT_WIFI, LOG_WARN, "Connect failed - staying in AP mode");
+        WiFi.disconnect(false);
+        WiFi.mode(WIFI_AP);
+        _state = CT_WIFI_AP;
+    }
+}
+
+void WiFiManager::requestConnect(const char* ssid, const char* password) {
+    if (!ssid || !ssid[0]) return;
+    strncpy(_pSsid, ssid, sizeof(_pSsid) - 1);
+    _pSsid[sizeof(_pSsid) - 1] = '\0';
+    strncpy(_pPass, password ? password : "", sizeof(_pPass) - 1);
+    _pPass[sizeof(_pPass) - 1] = '\0';
+    _pending = true;
+}
+
+void WiFiManager::forgetNetwork() {
+    AppConfig* cfg = getConfig();
+    cfg->wifiSSID[0] = '\0';
+    cfg->wifiPassword[0] = '\0';
+    saveConfig();
+    _pending = false;
+    _connecting = false;
+    if (_state != CT_WIFI_DISABLED) {
+        WiFi.disconnect(false);
+        WiFi.mode(WIFI_AP);
+        _state = CT_WIFI_AP;
+    }
+}
+
+void WiFiManager::update() {
+    if (!_enabled || _state == CT_WIFI_DISABLED) return;
+    const uint32_t now = millis();
+
+    if (_pending) {
+        _pending = false;
+        _saveOnConnect = true;
+        Serial.printf("[WiFi] Connecting to %s...\n", _pSsid);
+        _beginSta(_pSsid, _pPass);
+        return;
+    }
+
+    if (_connecting) {
+        if (WiFi.status() == WL_CONNECTED) {
+            _connecting = false;
+            _state = CT_WIFI_STA;
+            if (_saveOnConnect) {
+                _saveOnConnect = false;
+                AppConfig* cfg = getConfig();
+                strncpy(cfg->wifiSSID, _pSsid, sizeof(cfg->wifiSSID) - 1);
+                cfg->wifiSSID[sizeof(cfg->wifiSSID) - 1] = '\0';
+                strncpy(cfg->wifiPassword, _pPass, sizeof(cfg->wifiPassword) - 1);
+                cfg->wifiPassword[sizeof(cfg->wifiPassword) - 1] = '\0';
+                saveConfig();
+            }
+            Serial.printf("[WiFi] Connected. IP: %s\n", WiFi.localIP().toString().c_str());
+        } else if ((uint32_t)(now - _connectStart) > WIFI_TIMEOUT_MS) {
+            _connecting = false;
+            _saveOnConnect = false;
+            _lastAttempt = now;
+            getErrorLog()->log(LOG_CAT_WIFI, LOG_WARN, "Router connect timed out - AP only");
+            WiFi.disconnect(false);
+            WiFi.mode(WIFI_AP);
+            _state = CT_WIFI_AP;
+        }
+        return;
+    }
+
+    // Router link lost: fall back to the AP-only state and retry later.
+    if (_state == CT_WIFI_STA && WiFi.status() != WL_CONNECTED) {
+        _state = CT_WIFI_AP;
+        _lastAttempt = now;
+        WiFi.disconnect(false);
+        WiFi.mode(WIFI_AP);
+        return;
+    }
+
+    // Saved router not connected: retry every 60 s, but not while someone is
+    // using the AP (the radio would leave the AP channel during a scan).
+    AppConfig* cfg = getConfig();
+    if (_state == CT_WIFI_AP && cfg->wifiSSID[0] &&
+        (uint32_t)(now - _lastAttempt) > 60000 && WiFi.softAPgetStationNum() == 0) {
+        _lastAttempt = now;
+        _beginSta(cfg->wifiSSID, cfg->wifiPassword);
     }
 }
 
@@ -108,6 +203,9 @@ void WiFiManager::_startSTA() {
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
 void WiFiManager::disconnect() {
+    _apUp = false;
+    _pending = false;
+    _connecting = false;
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     _state = CT_WIFI_DISABLED;
@@ -145,36 +243,6 @@ uint8_t WiFiManager::scanNetworks(char networks[][32], uint8_t maxCount) {
     return result;
 }
 
-// ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
-// ○○○○○○○○○○ Connect to a network
-// ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
-
-bool WiFiManager::connectToNetwork(const char* ssid, const char* password) {
-    AppConfig* cfg = getConfig();
-    strncpy(cfg->wifiSSID, ssid, sizeof(cfg->wifiSSID) - 1);
-    strncpy(cfg->wifiPassword, password, sizeof(cfg->wifiPassword) - 1);
-    saveConfig();
-
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-
-    int retry = 0;
-    while (WiFi.status() != WL_CONNECTED && retry < WIFI_MAX_RETRY) {
-        delay(500);
-        retry++;
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-        _state = CT_WIFI_STA;
-        Serial.printf("[WiFi] Connected to %s. IP: %s\n", ssid, WiFi.localIP().toString().c_str());
-        return true;
-    }
-
-    getErrorLog()->log(LOG_CAT_WIFI, LOG_WARN, "Failed to connect to %s", ssid);
-    _state = CT_WIFI_STA_FAIL;
-    return false;
-}
-
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ Status accessors
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -184,17 +252,18 @@ WiFiState WiFiManager::getState() {
 }
 
 IPAddress WiFiManager::getIP() {
-    if (_state == CT_WIFI_AP) {
-        return WiFi.softAPIP();
-    } else if (_state == CT_WIFI_STA) {
+    if (_state == CT_WIFI_STA && WiFi.status() == WL_CONNECTED) {
         return WiFi.localIP();
+    }
+    if (_apUp) {
+        return WiFi.softAPIP();
     }
     return IPAddress(0, 0, 0, 0);
 }
 
 bool WiFiManager::isConnected() {
-    return (_state == CT_WIFI_STA && WiFi.status() == WL_CONNECTED) ||
-           (_state == CT_WIFI_AP);
+    return _state != CT_WIFI_DISABLED &&
+           (_apUp || WiFi.status() == WL_CONNECTED);
 }
 
 bool WiFiManager::isEnabled() {

@@ -29,6 +29,8 @@ public:
     bool isEnabled() const;
     bool isConnected() const;
     bool isOtaInProgress() const;
+    /** True once if a BLE client connected or sent a command since the last call (keeps auto-sleep away). */
+    bool consumeActivity() { const bool a = _activity; _activity = false; return a; }
     uint32_t otaBytesReceived() const;
     uint32_t otaExpectedBytes() const;
     const char* deviceName() const;
@@ -40,6 +42,7 @@ private:
     bool _otaAuthenticated;
     bool _otaError;
     bool _commandAuthenticated;
+    volatile bool _activity = false;
     CtLoginLock _authLock;    // shared by command login and OTA start
     uint16_t _otaConnHandle;
     uint16_t _commandConnHandle;

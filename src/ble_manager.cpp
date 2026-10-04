@@ -32,6 +32,7 @@ class BLEManager::ServerCallbacks : public NimBLEServerCallbacks {
     void onConnect(NimBLEServer*, NimBLEConnInfo& info) override {
         if (gManager) {
             gManager->_connected = true;
+            gManager->_activity = true;
             gManager->_commandAuthenticated = false;
             gManager->_commandConnHandle = info.getConnHandle();
         }
@@ -212,6 +213,7 @@ bool BLEManager::_authenticateCommand(const String& password, uint16_t connHandl
 void BLEManager::_handleCommand(const String& command, uint16_t connHandle) {
     String cmd = command;
     cmd.trim();
+    _activity = true;
 
     if (cmd.equalsIgnoreCase("STATUS")) {
         String status = "READY:" + String(_otaInProgress ? "OTA" : "IDLE");

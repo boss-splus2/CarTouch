@@ -31,6 +31,13 @@
 #include "ct_can_record.h"
 #include "dbc_store.h"
 #include "ct_http_body_limit.h"
+#include "wifi_manager.h"
+
+extern WiFiManager wifiManager;    // defined in main.cpp
+
+static inline uint32_t ctClientIp(AsyncWebServerRequest* r) {
+    return (uint32_t)r->client()->remoteIP();
+}
 #include <stdlib.h>
 
 namespace {
@@ -202,8 +209,8 @@ WebServerManager::WebServerManager()
     _sessionToken             = "";
     _sessionTokenIssuedAt        = 0;
 
-    _loginFailCount           = 0;
-    _loginLockoutUntil           = 0;
+    memset(_loginTrack, 0, sizeof(_loginTrack));
+    _activity                 = false;
 
     _otaError          = "";
     _otaBytes            = 0;
@@ -466,8 +473,9 @@ void WebServerManager::begin(uint16_t port) {
         // receives one consistent Basic-Auth challenge.
         AppConfig* authCfg = getConfig();
 
+        const uint32_t ip = ctClientIp(request);
         uint32_t remainingMs;
-        if (_isLoginLocked(remainingMs)) {
+        if (_isLoginLocked(ip, remainingMs)) {
             AsyncWebServerResponse* response = request->beginResponse(429, "text/html; charset=utf-8",
                 "<html><head><meta charset='utf-8'></head><body dir='ltr'><h3>Too many failed attempts</h3>"
                 "<p>Too many failed login attempts. Please try again later.</p>"
@@ -478,7 +486,7 @@ void WebServerManager::begin(uint16_t port) {
         }
 
         if (!request->authenticate(authCfg->webUser, authCfg->webPass)) {
-            _registerLoginFailure();
+            _registerLoginFailure(ip);
             AsyncWebServerResponse* response = request->beginResponse(401, "text/html; charset=utf-8",
                 "<html><head><meta charset='utf-8'></head><body dir='ltr'><h3>Unauthorized</h3>"
                 "<p>Enter the username and password in the browser login dialog. If it does not appear, reopen the page.</p>"
@@ -487,7 +495,8 @@ void WebServerManager::begin(uint16_t port) {
             request->send(response);
             return;
         }
-        _registerLoginSuccess();
+        _registerLoginSuccess(ip);
+        _activity = true;
 
         if (_sessionToken.length() == 0 ||
             millis() - _sessionTokenIssuedAt > SESSION_TOKEN_TIMEOUT) {
@@ -507,8 +516,9 @@ void WebServerManager::begin(uint16_t port) {
     });
 
     _server.on("/login", HTTP_POST, [this](AsyncWebServerRequest* request) {
+        const uint32_t ip = ctClientIp(request);
         uint32_t remainingMs;
-        if (_isLoginLocked(remainingMs)) {
+        if (_isLoginLocked(ip, remainingMs)) {
             AsyncWebServerResponse* response = request->beginResponse(429, "text/html; charset=utf-8",
                 "<html><head><meta charset='utf-8'></head><body dir='ltr'><h3>Too many failed attempts</h3>"
                 "<p>Too many failed login attempts. Please try again later.</p>"
@@ -523,7 +533,8 @@ void WebServerManager::begin(uint16_t port) {
         AppConfig* cfg  = getConfig();
 
         if (user.equals(cfg->webUser) && pass.equals(cfg->webPass)) {
-            _registerLoginSuccess();
+            _registerLoginSuccess(ip);
+            _activity = true;
             _sessionToken = _generateSessionToken();
             _sessionTokenIssuedAt = millis();
 
@@ -536,7 +547,7 @@ void WebServerManager::begin(uint16_t port) {
             // only that an attempt failed, for basic brute-force
             // visibility without storing credential-adjacent data.
             getErrorLog()->log(LOG_CAT_WEB, LOG_WARN, "Failed login attempt");
-            _registerLoginFailure();
+            _registerLoginFailure(ip);
             request->send(401, "text/html; charset=utf-8", "<html><head><meta charset='utf-8'></head><body dir='ltr'><h3>Invalid username or password</h3><a href='/'>Back</a></body></html>");
         }
     });
@@ -615,6 +626,30 @@ void WebServerManager::begin(uint16_t port) {
             request->send(400, "application/json",
                 "{\"success\":false,\"error\":\"Password must be 8 to 15 characters\"}");
         }
+    });
+
+    _server.on("/api/wifi", HTTP_POST, [this](AsyncWebServerRequest* request) {
+        if (!_authenticate(request)) return;
+        if (request->arg("forget") == "1") {
+            wifiManager.forgetNetwork();
+            request->send(200, "application/json", "{\"success\":true,\"message\":\"Saved network removed\"}");
+            return;
+        }
+        String ssid = request->arg("ssid");
+        String pass = request->arg("pass");
+        ssid.trim();
+        if (ssid.length() < 1 || ssid.length() > 31) {
+            request->send(400, "application/json", "{\"success\":false,\"error\":\"Network name must be 1 to 31 characters\"}");
+            return;
+        }
+        if (pass.length() != 0 && (pass.length() < 8 || pass.length() > 63)) {
+            request->send(400, "application/json", "{\"success\":false,\"error\":\"Wi-Fi password must be 8 to 63 characters (empty for an open network)\"}");
+            return;
+        }
+        // The connection runs in loop(), not here, so this async task never blocks.
+        // The CarTouch access point stays up; the network is saved only if it connects.
+        wifiManager.requestConnect(ssid.c_str(), pass.c_str());
+        request->send(200, "application/json", "{\"success\":true,\"message\":\"Connecting. Check the IP shown in Settings.\"}");
     });
 
     _server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest* request) {
@@ -1945,6 +1980,7 @@ void WebServerManager::_handleWebSocketEvent(AsyncWebSocket* server,
             Serial.printf("[WEB] Client %d connected (awaiting auth)\n", client->id());
             _findOrCreateClientAuth(client->id());
             client->printf("{\"type\":\"need_auth\"}");
+            _activity = true;
             break;
         }
 
@@ -2016,6 +2052,8 @@ void WebServerManager::_handleWebSocketEvent(AsyncWebSocket* server,
                     client->close(1008, "session expired");
                     break;
                 }
+
+                if (strcmp(msgType, "ping") != 0) _activity = true;    // keep-alive pings do not count
 
                 if (strcmp(msgType, "command") == 0) {
                     uint32_t now = millis();
@@ -2167,7 +2205,7 @@ void WebServerManager::_handleWebSocketEvent(AsyncWebSocket* server,
 
 //
 // Brute-force protection:
-// _isLoginLocked() must be checked by every entry point that directly
+// _isLoginLocked(ip) must be checked by every entry point that directly
 // compares a submitted password against cfg->webPass, BEFORE that
 // comparison happens - never after. Checking after the comparison would
 // still let an attacker distinguish "right password, locked" from
@@ -2181,37 +2219,52 @@ void WebServerManager::_handleWebSocketEvent(AsyncWebSocket* server,
 // repeated bad Basic-Auth on "/") also blocks the others (e.g. "/login")
 // until it expires.
 
-bool WebServerManager::_isLoginLocked(uint32_t& remainingMs) {
-    if (_loginLockoutUntil == 0) return false;
+WebServerManager::LoginTrack* WebServerManager::_loginSlot(uint32_t ip, bool create) {
+    LoginTrack* freeSlot = nullptr;
+    LoginTrack* oldest   = nullptr;
+    for (int i = 0; i < LOGIN_TRACK_SLOTS; ++i) {
+        LoginTrack& t = _loginTrack[i];
+        if (t.used && t.ip == ip) { t.lastSeen = millis(); return &t; }
+        if (!t.used) { if (!freeSlot) freeSlot = &t; }
+        else if (!oldest || (int32_t)(t.lastSeen - oldest->lastSeen) < 0) oldest = &t;
+    }
+    if (!create) return nullptr;
+    LoginTrack* s = freeSlot ? freeSlot : oldest;
+    memset(s, 0, sizeof(*s));
+    s->used = true;
+    s->ip = ip;
+    s->lastSeen = millis();
+    return s;
+}
+
+bool WebServerManager::_isLoginLocked(uint32_t ip, uint32_t& remainingMs) {
+    LoginTrack* t = _loginSlot(ip, false);
+    if (!t || t->lockUntil == 0) return false;
     uint32_t now = millis();
-    // Wrap-safe elapsed check: the lockout window (30 s) is far shorter
-    // than the 32-bit millis() period (~49 days), so the signed difference
-    // is authoritative even when millis() rolls over mid-lockout.
-    if ((int32_t)(now - _loginLockoutUntil) >= 0) {
-        // Lockout window has passed - reset and let a fresh attempt through
-        _loginLockoutUntil = 0;
-        _loginFailCount = 0;
+    // Wrap-safe: the lockout (30 s) is far shorter than the millis() period.
+    if ((int32_t)(now - t->lockUntil) >= 0) {
+        t->lockUntil = 0;
+        t->fails = 0;
         return false;
     }
-    remainingMs = _loginLockoutUntil - now;
+    remainingMs = t->lockUntil - now;
     return true;
 }
 
-void WebServerManager::_registerLoginFailure() {
-    if (_loginFailCount < 255) _loginFailCount++;
-    if (_loginFailCount >= LOGIN_MAX_ATTEMPTS) {
+void WebServerManager::_registerLoginFailure(uint32_t ip) {
+    LoginTrack* t = _loginSlot(ip, true);
+    if (t->fails < 255) t->fails++;
+    if (t->fails >= LOGIN_MAX_ATTEMPTS) {
         uint32_t until = millis() + LOGIN_LOCKOUT_MS;
-        // 0 is the "not locked" sentinel; avoid a (rare) collision when the
-        // computed end timestamp lands exactly on 0.
-        _loginLockoutUntil = (until == 0) ? 1 : until;
+        t->lockUntil = (until == 0) ? 1 : until;    // 0 is the "not locked" sentinel
         getErrorLog()->log(LOG_CAT_WEB, LOG_WARN,
-            "Login lockout triggered after %u failed attempts", _loginFailCount);
+            "Login lockout triggered after %u failed attempts", t->fails);
     }
 }
 
-void WebServerManager::_registerLoginSuccess() {
-    _loginFailCount = 0;
-    _loginLockoutUntil = 0;
+void WebServerManager::_registerLoginSuccess(uint32_t ip) {
+    LoginTrack* t = _loginSlot(ip, false);
+    if (t) { t->fails = 0; t->lockUntil = 0; }
 }
 
 // Contract: on failure (locked out or bad credentials), _authenticate()
@@ -2224,8 +2277,9 @@ void WebServerManager::_registerLoginSuccess() {
 bool WebServerManager::_authenticate(AsyncWebServerRequest* request) {
     AppConfig* cfg = getConfig();
 
+    const uint32_t ip = ctClientIp(request);
     uint32_t remainingMs;
-    if (_isLoginLocked(remainingMs)) {
+    if (_isLoginLocked(ip, remainingMs)) {
         AsyncWebServerResponse* response = request->beginResponse(429, "application/json",
             "{\"error\":\"Too many failed login attempts. Try again later.\"}");
         response->addHeader("Retry-After", String(remainingMs / 1000 + 1));
@@ -2235,11 +2289,12 @@ bool WebServerManager::_authenticate(AsyncWebServerRequest* request) {
 
     if (!request->authenticate(cfg->webUser, cfg->webPass)) {
         getErrorLog()->log(LOG_CAT_WEB, LOG_WARN, "Failed basic-auth attempt (%s)", request->url().c_str());
-        _registerLoginFailure();
+        _registerLoginFailure(ip);
         request->requestAuthentication("CarTouch");
         return false;
     }
-    _registerLoginSuccess();
+    _registerLoginSuccess(ip);
+    _activity = true;
     return true;
 }
 
@@ -2396,9 +2451,13 @@ void WebServerManager::_handleAPIStatus(AsyncWebServerRequest* request) {
     doc["message"]     = "CarTouch active";
     doc["usingDefaultPassword"] = isUsingDefaultPassword();
     doc["firmwareVersion"] = CAR_TOUCH_FIRMWARE_VERSION;
-    doc["wifiConnected"] = WiFi.status() == WL_CONNECTED || WiFi.getMode() == WIFI_AP;
-    doc["wifiMode"] = (WiFi.getMode() == WIFI_AP) ? "AP" : ((WiFi.status() == WL_CONNECTED) ? "STA" : "OFFLINE");
-    doc["ip"] = (WiFi.getMode() == WIFI_AP) ? WiFi.softAPIP().toString() : WiFi.localIP().toString();
+    const bool staUp = WiFi.status() == WL_CONNECTED;
+    const bool apUp  = (WiFi.getMode() & WIFI_MODE_AP) != 0;
+    doc["wifiConnected"] = staUp || apUp;
+    doc["wifiMode"] = staUp ? (apUp ? "STA+AP" : "STA") : (apUp ? "AP" : "OFFLINE");
+    doc["ip"] = staUp ? WiFi.localIP().toString() : WiFi.softAPIP().toString();
+    doc["apIp"] = apUp ? WiFi.softAPIP().toString() : String("");
+    doc["wifiSsid"] = getConfig()->wifiSSID;
     doc["bleEnabled"] = bleManager.isEnabled();
     doc["bleConnected"] = bleManager.isConnected();
     doc["bleOtaInProgress"] = bleManager.isOtaInProgress();

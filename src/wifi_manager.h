@@ -52,8 +52,18 @@ public:
      */
     uint8_t scanNetworks(char networks[][32], uint8_t maxCount = 10);
 
-    /** Connects to a specific network. Returns true on success. */
-    bool connectToNetwork(const char* ssid, const char* password);
+    /**
+     * Asks the device to join a router. Non-blocking: the attempt runs from
+     * update(). The CarTouch access point stays on, and the network is saved
+     * only after it connects.
+     */
+    void requestConnect(const char* ssid, const char* password);
+
+    /** Forgets the saved router and goes back to AP only. */
+    void forgetNetwork();
+
+    /** Call every loop(): finishes connect attempts and retries a saved router. */
+    void update();
 
     WiFiState getState();
 
@@ -71,9 +81,18 @@ public:
 private:
     WiFiState _state;
     bool       _enabled;
+    bool       _apUp = false;
+    bool       _pending = false;       // requestConnect() waiting for update()
+    bool       _connecting = false;    // a STA attempt is in progress
+    bool       _saveOnConnect = false;
+    uint32_t   _connectStart = 0;
+    uint32_t   _lastAttempt = 0;
+    char       _pSsid[32] = {};
+    char       _pPass[64] = {};
 
     void _startAP();
     void _startSTA();
+    void _beginSta(const char* ssid, const char* pass);
 };
 
 #endif    // WIFI_MANAGER_H

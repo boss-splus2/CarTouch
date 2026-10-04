@@ -364,7 +364,8 @@ void setup() {
 
     // 9. WiFi (AP mode by default)
     moduleStatusManager.setState(MODULE_WIFI, MODULE_INITIALIZING);
-    wifiManager.begin(1);
+    // AP always; if a router was saved, join it as well (AP stays up).
+    wifiManager.begin(getConfig()->wifiSSID[0] ? 2 : 1);
     tftUI.setWiFiStatus(wifiManager.isConnected());
     moduleStatusManager.setState(MODULE_WIFI,
         wifiManager.isEnabled() && wifiManager.isConnected() ? MODULE_READY :
@@ -456,6 +457,7 @@ void loop() {
 
     // 2. WebSocket
     webServer.update();
+    wifiManager.update();
 
     static uint32_t lastCanRecordingStatusBroadcast = 0;
     if ((uint32_t)(millis() - lastCanRecordingStatusBroadcast) >= 1000) {
@@ -553,6 +555,17 @@ void loop() {
         lastActivityTime = millis();
     }
 #endif
+
+    // 4c. Web / BLE activity: a logged-in web request, a web command, or a BLE
+    // connection/command counts as use, wakes the device and delays auto-sleep.
+    {
+        const bool webAct = webServer.consumeActivity();
+        const bool bleAct = bleManager.consumeActivity();
+        if (webAct || bleAct) {
+            if (currentMode == MODE_SLEEP) wakeFromSleep();
+            lastActivityTime = millis();
+        }
+    }
 
     // 5. Auto-sleep check. Deferred while a Learn Mode capture is in
     // progress so the session isn't interrupted.
@@ -1253,7 +1266,8 @@ void checkAutoSleep() {
         currentMode = MODE_SLEEP;
 
         tftUI.setDeviceMode(MODE_SLEEP);
-        wifiManager.disconnect();
+        // Wi-Fi stays on in sleep: it used to be switched off here, which made the
+        // web page unreachable until a CAN frame or a screen touch woke the device.
 
         Serial.println("[SLEEP] Device asleep - waiting for CAN activity to wake");
     }
@@ -1274,7 +1288,7 @@ void wakeFromSleep() {
     tftUI.setDeviceMode(MODE_ACTIVE);
 
     if (!wifiManager.isConnected()) {
-        wifiManager.begin(1);
+        wifiManager.begin(getConfig()->wifiSSID[0] ? 2 : 1);
     }
 
     tftUI.showNotification("Awake!");
