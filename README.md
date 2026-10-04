@@ -7,7 +7,7 @@
 ![ESP32-S3](https://img.shields.io/badge/ESP32--S3-N16R8-green)
 ![CAN Bus](https://img.shields.io/badge/CAN-Dual%20Bus-orange)
 ![LVGL](https://img.shields.io/badge/LVGL-8.4-purple)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
+![License](https://img.shields.io/badge/License-Proprietary-lightgrey)
 
 </div>
 
@@ -388,7 +388,7 @@ pio run -e esp32-s3-headless
 <li>به Access Point دستگاه وصل شوید یا تنظیمات Station را انجام دهید.</li>
 <li>آدرس وبی که در Serial Monitor نمایش داده می‌شود را در مرورگر باز کنید.</li>
 <li>با حساب مدیریتی وارد شوید.</li>
-<li><b>رمز پیش‌فرض را بلافاصله تغییر دهید.</b> رمزهای پیش‌فرض در یک نصب واقعی نباید باقی بمانند، و OTA از طریق BLE تا زمانی که رمز پیش‌فرض فعال است رد می‌شود.</li>
+<li><b>رمز پیش‌فرض را قبل از فروش تغییر دهید.</b> رمز پیش‌فرض ثابت است و فقط در <code>src/config.h</code> (<code>WEB_DEFAULT_PASS</code>) نوشته شده؛ وای‌فای، وب، صفحه و بلوتوث همه از همان استفاده می‌کنند. با گذاشتن <code>CT_REQUIRE_PASSWORD_CHANGE</code> روی 1، BLE و OTA بلوتوثی تا تغییر رمز رد می‌شوند. در حالت فعلی (0) رمز پیش‌فرض همه‌جا پذیرفته می‌شود. رمز وای‌فای دستگاه بعد از تغییر رمز و راه‌اندازی مجدد عوض می‌شود.</li>
 <li>برای آزمایش CAN ابتدا Listen-Only را نگه دارید.</li>
 <li>پیش از فعال‌کردن فرمان‌های کنترلی، پروفایل خودرو را انتخاب یا ایجاد کنید و هر فرمان یادگرفته‌شده را جداگانه تأیید کنید.</li>
 </ol>
@@ -526,6 +526,6 @@ CarTouch/
 </tr>
 </table>
 
-**مجوز:** MIT — متن کامل در `LICENSE`.
+**مجوز:** اختصاصی (همه‌ی حقوق محفوظ) — متن کامل در `LICENSE`.
 
 </div>

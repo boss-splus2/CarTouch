@@ -9,7 +9,7 @@ CarTouch starts BLE independently of Wi-Fi and advertises as `CarTouch-XXXX`.
 
 ## Authenticated device commands
 1. Pair/connect over the encrypted BLE link.
-2. Write `AUTH:<web-password>` to Command. The default Web password is not accepted; five failures lock command authentication for 60 seconds.
+2. Write `AUTH:<web-password>` to Command. While `CT_REQUIRE_PASSWORD_CHANGE` is 1 (commercial setting), the default Web password is not accepted; five failures lock command authentication for 60 seconds.
 3. Send one of `DTC:READ`, `DTC:CLEAR`, `DTC:STATUS`, `RECORD:START:1`, `RECORD:START:2`, `RECORD:START:BOTH`, `RECORD:STOP`, `RECORD:STATUS`, or `RECORD:DELETE:canNNNN.csv`. Device operations are rate-limited to one request per 300 ms.
 4. Subscribe to Status for the result. Diagnostic status notifications are targeted to the authenticated connection. `DTC:CLEAR` is explicit and reports success only after a positive ECU acknowledgement.
 5. Send `LOGOUT` when finished. Command authentication and OTA ownership are bound to the BLE connection and cleared on disconnect.
@@ -18,7 +18,7 @@ This is a bounded subset, not Web UI parity. BLE does not accept raw CAN frames,
 
 ## Authenticated device commands
 1. Pair/connect over the encrypted BLE link.
-2. Write `AUTH:<web-password>` to Command. The default Web password is not accepted; five failures lock command authentication for 60 seconds.
+2. Write `AUTH:<web-password>` to Command. While `CT_REQUIRE_PASSWORD_CHANGE` is 1 (commercial setting), the default Web password is not accepted; five failures lock command authentication for 60 seconds.
 3. Send one of `DTC:READ`, `DTC:CLEAR`, `DTC:STATUS`, `RECORD:START:1`, `RECORD:START:2`, `RECORD:START:BOTH`, `RECORD:STOP`, `RECORD:STATUS`, or `RECORD:DELETE:canNNNN.csv`.
 4. Read/subscribe to Status for the resulting state. `DTC:CLEAR` is explicit and requires a positive ECU acknowledgement before reporting success.
 5. Send `LOGOUT` when finished. Authentication is connection-scoped and is cleared when that connection disconnects.
@@ -42,7 +42,8 @@ The authenticated Web UI remains the full configuration surface.
 
 ## Hardening notes
 - Command/Data characteristics require an encrypted (paired) link.
-- The default login is `cartouch` / `8580Reza.` (same as the Wi-Fi AP password). OTA is only refused if the legacy `forcePasswordChange` flag is set (`OTA_CHANGE_DEFAULT_PASSWORD`).
+- One fixed default login is defined in one place (`WEB_DEFAULT_USER` / `WEB_DEFAULT_PASS` in `src/config.h`, currently `CarTouch` / `12345678`). It is never generated automatically. The Web UI, TFT, BLE and the Wi-Fi access point all use it until the owner changes the password (the access point picks up a new password at the next restart).
+- `CT_REQUIRE_PASSWORD_CHANGE` in `src/config.h`: 0 (current, development) accepts the default login everywhere; 1 (commercial) makes BLE commands and BLE OTA refuse the default (`OTA_CHANGE_DEFAULT_PASSWORD`) and forbids choosing the default again.
 - 5 wrong passwords lock BLE OTA for 60 seconds.
 - The image header is checked while data arrives: `OTA_BAD_HEADER` (not an ESP image), `OTA_WRONG_CHIP` (not built for the ESP32-S3) and `OTA_WRONG_FLASH_SIZE` (built for more flash than the device has, for example a 16 MB image sent to a 4 MB board). The transfer is aborted and the running firmware is untouched.
 - SHA-256 is computed incrementally as bytes arrive. It detects a transfer/file mismatch against the supplied digest; it is not a digital signature and does not prove who built the image. Use a checksum from the same trusted release artifact.
