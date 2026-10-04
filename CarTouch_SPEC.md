@@ -355,6 +355,8 @@ Intel و Motorola باید با mapping بیت صحیح پردازش شوند. �
 - import profile نباید باعث overflow، path traversal یا مصرف بی‌نهایت حافظه شود.
 - OTA بدون authentication ممنوع باشد.
 - پیام WebSocket قبل از dispatch اعتبارسنجی شود.
+- درخواست تغییردهنده‌ی HTTP با هدر Origin ناهمخوان با Host (درخواست از سایت دیگر) رد شود (`ct_origin.h`)؛ درخواست بدون Origin مجاز است ولی احراز هویت می‌خواهد.
+- label فرمان فقط شامل حروف انگلیسی، عدد، فاصله و `_ - .` باشد (`ctLabelIsSafe`) و UI هر مقدار نمایشی را قبل از innerHTML escape کند.
 
 HTTPS پشتیبانی نمی‌شود و مستندات نباید خلاف آن ادعا کنند.
 

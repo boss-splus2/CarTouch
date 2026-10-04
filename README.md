@@ -348,6 +348,8 @@ pio run -e esp32-s3-headless
 <tr><td align="center"><code>firmware.bin</code></td><td align="center"><code>0x10000</code></td></tr>
 <tr><td align="center"><code>spiffs.bin</code></td><td align="center"><code>0xA10000</code></td></tr>
 </table>
+تنظیمات ابزارهای فلش گرافیکی (مثل ESP32 Flash/Erase): چیپ ESP32-S3، فلش 16MB (یا 4MB برای پروفایل‌های 4MB)، فرکانس 80MHz و حالت QIO (در صورت بوت‌نشدن، DIO). `boot_app0.bin` را حتماً جداگانه روی `0xE000` اضافه کنید. فایل‌ها باید همه از یک پوشه‌ی بیلد (یک پروفایل) باشند.
+
 برای جدول 4MB، آدرس `spiffs.bin` برابر `0x310000` است؛ سایر imageهای سیستم در همان آدرس‌های جدول بالا قرار دارند. جدول و اندازه‌ی دقیق همه‌ی پارتیشن‌ها در بخش 18 مشخصات فنی آمده است. `boot_app0.bin` در `0xE000` داخل پارتیشن `otadata` نوشته می‌شود و پارتیشن جدا نیست.
 
 </details>
@@ -374,7 +376,7 @@ pio run -e esp32-s3-headless
 <tr><td align="center">AsyncTCP</td><td align="center">3.5.0</td><td align="center">TCP Async</td></tr>
 <tr><td align="center">ArduinoJson</td><td align="center">7.4.3</td><td align="center">کار با JSON</td></tr>
 <tr><td align="center">NimBLE-Arduino</td><td align="center">2.5.1</td><td align="center">BLE و BLE OTA</td></tr>
-<tr><td align="center">autowp-mcp2515</td><td align="center">≥ 1.3.1</td><td align="center">درایور MCP2515 برای CAN2</td></tr>
+<tr><td align="center">autowp-mcp2515</td><td align="center">1.3.1</td><td align="center">درایور MCP2515 برای CAN2</td></tr>
 </table>
 
 </details>
@@ -425,6 +427,8 @@ flowchart TD
 - تغییر رمز، نشست‌های قبلی را بی‌اعتبار می‌کند.
 - بدنه‌ی درخواست‌های HTTP پیش از parse سقف دارد؛ واردکردن پروفایل و بارگذاری DBC سقف‌های جداگانه دارند و بدنه‌های با طول نامشخص رد می‌شوند. OTA فایل به‌صورت تکه‌ای نوشته می‌شود و اندازه‌اش را محدودیت پارتیشن کنترل می‌کند.
 - OTA فقط از مسیر احراز هویت‌شده در دسترس است.
+- درخواست‌های تغییردهنده‌ی (POST/PUT/PATCH/DELETE) که مرورگر از یک وب‌سایت دیگر بفرستد با خطای 403 رد می‌شوند (بررسی هدر Origin در برابر Host)؛ ابزارهای بدون هدر Origin مثل curl همچنان با رمز کار می‌کنند.
+- نام (label) فرمان فقط حرف انگلیسی، عدد، فاصله و `_ - .` می‌پذیرد و خروجی‌های وب هنگام نمایش escape می‌شوند.
 - نبود HTTPS یعنی session و سایر داده‌های وب در شبکه‌ی محلی محرمانگی TLS ندارند.
 
 </details>
@@ -467,6 +471,10 @@ OTA برای firmware و filesystem از Web UI فعال است و برای هر
 CarTouch/
 ├── platformio.ini                # تنظیمات PlatformIO، پین‌ها و کتابخانه‌ها
 ├── cartouch_16MB.csv             # جدول پارتیشن ۱۶ مگابایتی
+├── cartouch_4MB.csv              # جدول پارتیشن ۴ مگابایتی
+├── boards/                       # تعریف بردهای N16R8 و 4MB
+├── scripts/                      # چک‌های CI و اسکریپت فایل‌سیستم 4MB
+├── DBC_AUDIT.md                  # گزارش خودکار فایل‌های DBC
 ├── README.md                     # همین فایل
 ├── CarTouch_SPEC.md              # مشخصات فنی و معماری
 ├── BLE_OTA.md                    # پروتکل BLE و BLE OTA
