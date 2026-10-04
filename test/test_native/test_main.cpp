@@ -13,6 +13,7 @@
 #include "ct_storage_policy.h"
 #include "ct_buttons.h"
 #include "ct_json_validation.h"
+#include "ct_origin.h"
 #include "ct_battery.h"
 #include "ct_obd_validity.h"
 #include "ct_obd_formulas.h"
@@ -648,6 +649,44 @@ void test_json_command_rejects_invalid_types_and_ranges(void) {
     TEST_ASSERT_FALSE(ctValidateImportedCommand(item, f));
     item["source"] = 2; char longName[49]; memset(longName, 'x', 48); longName[48] = '\0'; item["displayName"] = longName;
     TEST_ASSERT_FALSE(ctValidateImportedCommand(item, f));
+}
+
+void test_origin_guard_blocks_cross_site_only(void) {
+    TEST_ASSERT_TRUE(ctOriginAllowed(nullptr, "192.168.4.1"));                 // no Origin header
+    TEST_ASSERT_TRUE(ctOriginAllowed("", "192.168.4.1"));
+    TEST_ASSERT_TRUE(ctOriginAllowed("http://192.168.4.1", "192.168.4.1"));    // own page
+    TEST_ASSERT_TRUE(ctOriginAllowed("http://192.168.4.1:8080", "192.168.4.1:8080"));
+    TEST_ASSERT_TRUE(ctOriginAllowed("HTTP://CarTouch.local", "cartouch.local"));
+    TEST_ASSERT_FALSE(ctOriginAllowed("http://evil.example", "192.168.4.1"));  // another site
+    TEST_ASSERT_FALSE(ctOriginAllowed("https://192.168.4.1", "192.168.4.1"));  // other scheme
+    TEST_ASSERT_FALSE(ctOriginAllowed("null", "192.168.4.1"));
+    TEST_ASSERT_FALSE(ctOriginAllowed("http://192.168.4.1.evil.example", "192.168.4.1"));
+    TEST_ASSERT_FALSE(ctOriginAllowed("http://192.168.4.1", nullptr));         // Origin without Host
+}
+
+void test_label_safe_rejects_html_and_quotes(void) {
+    TEST_ASSERT_TRUE(ctLabelIsSafe("lock_all"));
+    TEST_ASSERT_TRUE(ctLabelIsSafe("Window FL-up.2"));
+    TEST_ASSERT_FALSE(ctLabelIsSafe(""));
+    TEST_ASSERT_FALSE(ctLabelIsSafe(nullptr));
+    TEST_ASSERT_FALSE(ctLabelIsSafe("x\" onmouseover=\"alert(1)"));
+    TEST_ASSERT_FALSE(ctLabelIsSafe("<img src=x>"));
+    TEST_ASSERT_FALSE(ctLabelIsSafe("a'b"));
+    TEST_ASSERT_FALSE(ctLabelIsSafe("a&b"));
+    TEST_ASSERT_FALSE(ctLabelIsSafe("a\nb"));
+}
+
+void test_json_command_rejects_unsafe_label(void) {
+    JsonDocument doc;
+    JsonObject item = doc.to<JsonObject>();
+    item["label"] = "x\"><script>"; item["displayName"] = "Lock";
+    item["canId"] = 0x123; item["extended"] = false; item["length"] = 1;
+    item["data"].to<JsonArray>().add(1);
+    item["source"] = 2; item["status"] = "unverified";
+    CtJsonCommandFields f;
+    TEST_ASSERT_FALSE(ctValidateImportedCommand(item, f));
+    item["label"] = "lock_all";
+    TEST_ASSERT_TRUE(ctValidateImportedCommand(item, f));
 }
 
 void test_verification_transaction_rejections(void) {
@@ -1346,6 +1385,9 @@ int main(int, char**) {
     RUN_TEST(test_dbc_extended_id_decode);
     RUN_TEST(test_json_command_validation);
     RUN_TEST(test_json_command_rejects_invalid_types_and_ranges);
+    RUN_TEST(test_json_command_rejects_unsafe_label);
+    RUN_TEST(test_label_safe_rejects_html_and_quotes);
+    RUN_TEST(test_origin_guard_blocks_cross_site_only);
     RUN_TEST(test_vehicle_tx_guard_blocks_when_config_or_driver_listen_only);
     RUN_TEST(test_bus_route_selector_is_sanitised);
     RUN_TEST(test_mcp2515_8mhz_timing_table_decodes_to_requested_bitrates);
