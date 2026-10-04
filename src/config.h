@@ -86,19 +86,39 @@
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
 #define WIFI_AP_NAME     "CarTouch"
-#define WIFI_AP_PASSWORD "8580Reza."   // Wi-Fi AP password (min 8 chars) - same as the web/BLE password
+// The Wi-Fi access point uses the same password as the web UI and BLE
+// (AppConfig::webPass). There is no separate Wi-Fi password in the source.
 #define WIFI_MAX_RETRY   20
 #define WIFI_TIMEOUT_MS  15000
 
 #define WEB_PORT 80
 #define WS_PORT  81
 
-// Default login used everywhere: web UI, TFT, BLE (AUTH / OTA) and the Wi-Fi AP.
-// It is the same on every device and is visible in the repository, so change it
-// from Settings if the device is used anywhere untrusted. webUser is char[16]
-// and webPass is char[16] (max 15 characters).
-#define WEB_DEFAULT_USER "cartouch"
-#define WEB_DEFAULT_PASS "8580Reza."
+// ---- THE ONLY PLACE the default login is written -------------------------
+// Used everywhere: web UI, TFT, BLE (AUTH / OTA) and the Wi-Fi AP. It is fixed
+// (never generated automatically) and identical on every device. It is visible
+// in the repository, so it must be changed before the product is sold:
+//   1. edit WEB_DEFAULT_PASS below (8 to 15 characters), and
+//   2. set CT_REQUIRE_PASSWORD_CHANGE to 1 if every owner must pick their own.
+// An owner can also change the password at any time from Settings (TFT / Web).
+#define WEB_DEFAULT_USER "CarTouch"
+#define WEB_DEFAULT_PASS "12345678"
+
+// 0 = the default login works everywhere, including BLE commands and BLE OTA
+//     (development setting).
+// 1 = while the password is still the default, BLE commands and BLE OTA are
+//     refused, the TFT/Web show a "change the password" warning, and the
+//     default cannot be chosen again as the new password.
+#ifndef CT_REQUIRE_PASSWORD_CHANGE
+#define CT_REQUIRE_PASSWORD_CHANGE 0
+#endif
+
+// Compile-time guard: webUser is char[16], webPass is char[16], and the Wi-Fi
+// access point needs at least 8 characters.
+static_assert(sizeof(WEB_DEFAULT_PASS) >= 9 && sizeof(WEB_DEFAULT_PASS) <= 16,
+              "WEB_DEFAULT_PASS must be 8 to 15 characters");
+static_assert(sizeof(WEB_DEFAULT_USER) >= 2 && sizeof(WEB_DEFAULT_USER) <= 16,
+              "WEB_DEFAULT_USER must be 1 to 15 characters");
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ Power management
@@ -209,7 +229,7 @@ struct AppConfig {
     // Web
     char webUser[16]           = WEB_DEFAULT_USER;
     char webPass[16]           = WEB_DEFAULT_PASS;
-    bool forcePasswordChange   = false;               // Legacy flag; the default login is accepted everywhere
+    bool forcePasswordChange   = false;               // Legacy flag from old firmware (random temporary password); never set now
 
     // Vehicle
     char     vehicleBrand[32] = "Generic";

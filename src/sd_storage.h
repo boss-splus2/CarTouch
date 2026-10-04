@@ -4,7 +4,8 @@
 
 // Optional SD card on the shared SPI bus. Disabled until a chip-select pin is
 // stored (NVS key "sd_cs"); a missing card is a normal state, never an error
-// for the rest of the firmware. Not yet used by the recorder/profile code.
+// for the rest of the firmware. Used by the CAN recorder and the DBC store
+// (custom profiles are still kept in SPIFFS only).
 class SdStorage {
 public:
     enum State : uint8_t { SD_DISABLED, NOT_PRESENT, READY, ERROR_STATE };

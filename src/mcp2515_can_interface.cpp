@@ -65,6 +65,11 @@ bool Mcp2515CanInterface::begin() {
 
 bool Mcp2515CanInterface::_configure(bool listenOnly) {
     CAN_SPEED speed;
+    // Fail-safe: setBitrate() first puts the chip into Configuration mode, so
+    // from here on the chip is no longer in the mode _listenOnly describes.
+    // Any early return below therefore leaves TX blocked (listen-only), and
+    // only a fully successful switch publishes the requested mode.
+    _listenOnly = true;
     if (!_driver || !mapMcpBitrate(_speed, speed)) return false;
     if (_driver->setBitrate(speed, MCP_8MHZ) != MCP2515::ERROR_OK) return false;
     const MCP2515::ERROR modeResult = listenOnly

@@ -17,6 +17,23 @@
 #include "vehicle_control.h"
 #include "custom_vehicle.h"
 
+// RAII lock for VehicleControl::_mutex (recursive). Used for every access to
+// the shared state - not only the send path - because commands can come from
+// the loop task AND the async web task (learn-mode verification), and
+// _lastErrorMessage is an Arduino String that must never be written and read
+// at the same time.
+namespace {
+struct CtCtrlLock {
+    SemaphoreHandle_t m;
+    explicit CtCtrlLock(SemaphoreHandle_t h) : m(h) {
+        if (m) xSemaphoreTakeRecursive(m, portMAX_DELAY);
+    }
+    ~CtCtrlLock() {
+        if (m) xSemaphoreGiveRecursive(m);
+    }
+};
+}  // namespace
+
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ Constructor
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -202,11 +219,7 @@ void VehicleControl::_recordDutyCycle(ActuatorClass cls) {
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool VehicleControl::_execute(const char* label, String& outErrorReason, bool forVerification) {
-    struct Lock {
-        SemaphoreHandle_t m;
-        explicit Lock(SemaphoreHandle_t h) : m(h) { if (m) xSemaphoreTakeRecursive(m, portMAX_DELAY); }
-        ~Lock() { if (m) xSemaphoreGiveRecursive(m); }
-    } lock(_mutex);
+    CtCtrlLock lock(_mutex);
     // Runs before ActiveProfileManager resolution, since the goal is
     // protecting the physical motor regardless of which command is
     // requested.
@@ -247,6 +260,7 @@ bool VehicleControl::executeCommand(const char* commandLabel) {
 }
 
 bool VehicleControl::executeCommand(const char* commandLabel, String& outErrorReason) {
+    CtCtrlLock lock(_mutex);
     bool result = _execute(commandLabel, outErrorReason);
     if (!result && outErrorReason.length() > 0) {
         _lastErrorMessage = outErrorReason;
@@ -257,6 +271,7 @@ bool VehicleControl::executeCommand(const char* commandLabel, String& outErrorRe
 }
 
 bool VehicleControl::executeCommandForVerification(const char* commandLabel, String& outErrorReason) {
+    CtCtrlLock lock(_mutex);
     bool result = _execute(commandLabel, outErrorReason, /*forVerification=*/true);
     if (!result && outErrorReason.length() > 0) {
         _lastErrorMessage = outErrorReason;
@@ -355,6 +370,7 @@ bool VehicleControl::stopAll() {
     // CMD_VERIFIED gate, the Listen-Only guard and the base rate limit.
     // If no such command exists, nothing is sent; we never emit an
     // all-zero frame on a guessed CAN ID.
+    CtCtrlLock lock(_mutex);
     String reason;
     bool ok = executeCommand("stop_all", reason);
     if (!ok) {
@@ -370,9 +386,11 @@ bool VehicleControl::stopAll() {
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 uint8_t VehicleControl::getLastError() {
+    CtCtrlLock lock(_mutex);
     return _lastError;
 }
 
 String VehicleControl::getLastErrorMessage() {
-    return _lastErrorMessage;
+    CtCtrlLock lock(_mutex);
+    return _lastErrorMessage;    // copied while locked
 }

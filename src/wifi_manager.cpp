@@ -52,17 +52,24 @@ void WiFiManager::begin(uint8_t mode) {
 // □□□□□□□□□□ Access Point mode
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
+// The access point uses the device password. WPA2 needs 8 to 63 characters; an
+// empty password would start an OPEN network, so fall back to the default.
+static const char* apPassword() {
+    const char* p = getConfig()->webPass;
+    return strlen(p) >= 8 ? p : WEB_DEFAULT_PASS;
+}
+
 void WiFiManager::_startAP() {
     WiFi.mode(WIFI_AP);
 
-    bool result = WiFi.softAP(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+    bool result = WiFi.softAP(WIFI_AP_NAME, apPassword());
 
     if (result) {
         _apUp = true;
         _state = CT_WIFI_AP;
         Serial.printf("[WiFi] Access Point: %s | IP: %s\n",
                       WIFI_AP_NAME, WiFi.softAPIP().toString().c_str());
-        Serial.printf("[WiFi] Password: %s\n", WIFI_AP_PASSWORD);
+        Serial.println("[WiFi] AP password = device password (not printed)");
     } else {
         _state = CT_WIFI_DISABLED;
         Serial.println("[WiFi] Failed to create Access Point");
@@ -75,7 +82,7 @@ void WiFiManager::_startAP() {
 
 void WiFiManager::_beginSta(const char* ssid, const char* pass) {
     WiFi.mode(WIFI_AP_STA);
-    if (!_apUp) _apUp = WiFi.softAP(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+    if (!_apUp) _apUp = WiFi.softAP(WIFI_AP_NAME, apPassword());
     WiFi.begin(ssid, pass);
     _connecting = true;
     _connectStart = millis();

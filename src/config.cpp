@@ -219,8 +219,11 @@ bool loadConfig() {
     // Devices flashed with the old firmware hold a random temporary password
     // that nobody could read without a serial cable, and BLE stayed locked
     // until it was changed. If that password was never changed, replace it
-    // with the default login (other settings are kept).
-    if (currentConfig.forcePasswordChange) {
+    // with the default login (other settings are kept). The same is done for
+    // a missing user name or password (damaged data): without this the Wi-Fi
+    // access point could start with no password at all.
+    if (currentConfig.forcePasswordChange || currentConfig.webUser[0] == '\0' ||
+        strlen(currentConfig.webPass) < 8) {
         strcpy(currentConfig.webUser, WEB_DEFAULT_USER);
         strcpy(currentConfig.webPass, WEB_DEFAULT_PASS);
         currentConfig.forcePasswordChange = false;
@@ -307,9 +310,15 @@ AppConfig* getConfig() {
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool isUsingDefaultPassword() {
-    const AppConfig* cfg = getConfig();
-    // The default login is allowed everywhere (web, TFT, BLE, OTA).
-    return cfg->forcePasswordChange;
+#if CT_REQUIRE_PASSWORD_CHANGE
+    // Real comparison with the compiled-in default (the old version only read
+    // a flag that was never set, so the "refuse the default" checks in BLE did
+    // nothing).
+    return strcmp(getConfig()->webPass, WEB_DEFAULT_PASS) == 0;
+#else
+    // Development setting: the default login is allowed everywhere.
+    return false;
+#endif
 }
 
 bool setWebPassword(const char* newUser, const char* newPass) {
@@ -321,6 +330,12 @@ bool setWebPassword(const char* newUser, const char* newPass) {
         Serial.println("[CONFIG] New password is too long (max 15 characters)");
         return false;
     }
+#if CT_REQUIRE_PASSWORD_CHANGE
+    if (strcmp(newPass, WEB_DEFAULT_PASS) == 0) {
+        Serial.println("[CONFIG] New password must differ from the default");
+        return false;
+    }
+#endif
 
     AppConfig* cfg = getConfig();
     // Keep the old credentials so a failed NVS write does not leave RAM and

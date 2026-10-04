@@ -24,7 +24,7 @@ CANManager::CANManager(uint8_t txPin, uint8_t rxPin, uint32_t speed) {
     _txCount            = 0;
     _rxCount            = 0;
     _errorCount         = 0;
-    _lastRxTime          = 0;
+    _lastRxTime         = 0;
     _currentListenOnly  = false;     // Set for real in begin() / _installAndStart()
 }
 
@@ -295,7 +295,7 @@ bool CANManager::receiveMessage(CanMessage& msg, uint32_t timeout) {
         return false;
     }
 
-    twai_message_t twaiMsg;
+    twai_message_t twaiMsg = {};    // zeroed: a remote (RTR) frame carries no data bytes
     esp_err_t err = twai_receive(&twaiMsg, pdMS_TO_TICKS(timeout));
 
     if (err == ESP_OK) {
@@ -313,8 +313,13 @@ bool CANManager::receiveMessage(CanMessage& msg, uint32_t timeout) {
         }
         msg.length = dlc;
 
-        for (int i = 0; i < msg.length; i++) {
-            msg.data[i] = twaiMsg.data[i];
+        // Always fill all 8 bytes so no stale data from the caller's previous
+        // frame survives; a remote frame has DLC but no payload.
+        memset(msg.data, 0, sizeof(msg.data));
+        if (!msg.isRemote) {
+            for (int i = 0; i < msg.length; i++) {
+                msg.data[i] = twaiMsg.data[i];
+            }
         }
         _rxCount++;
         _lastRxTime = millis();
@@ -355,7 +360,7 @@ bool CANManager::isActive() {
     if (!_initialized) return false;
 
     twai_status_info_t status;
-    twai_get_status_info(&status);
+    if (twai_get_status_info(&status) != ESP_OK) return false;    // driver gone
     return (status.state != TWAI_STATE_STOPPED &&
             status.state != TWAI_STATE_BUS_OFF);
 }
@@ -394,8 +399,8 @@ bool CANManager::recoverFromBusOff() {
 
     // Wait (bounded) for the controller to reach STOPPED. From BUS_OFF this
     // requires 128 occurrences of the bus-free signal before the driver stops.
-    const uint32_t deadline = millis() + 1500;
-    while (millis() < deadline) {
+    const uint32_t recoveryStart = millis();
+    while (!ctElapsedAtLeast(millis(), recoveryStart, 1500)) {
         if (twai_get_status_info(&status) != ESP_OK) break;
         if (status.state == TWAI_STATE_STOPPED) break;
         delay(10);
