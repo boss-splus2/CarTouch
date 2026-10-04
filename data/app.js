@@ -452,6 +452,41 @@ function setupPasswordForm() {
     });
 }
 
+function setupWifiForm() {
+    const form = document.getElementById('wifi-form');
+    if (!form) return;
+    const msg = document.getElementById('wifi-form-msg');
+    async function send(params, okText) {
+        try {
+            const res = await fetch('/api/wifi', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            });
+            const data = await res.json();
+            msg.textContent = data.success ? okText : ('Error: ' + (data.error || 'failed'));
+            msg.style.color = data.success ? '#2ecc71' : '#e74c3c';
+            if (data.success) setTimeout(refreshDeviceInfo, 15000);
+        } catch (e) {
+            msg.textContent = 'Server communication error';
+            msg.style.color = '#e74c3c';
+        }
+    }
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const p = new URLSearchParams();
+        p.append('ssid', document.getElementById('wifi-ssid-input').value.trim());
+        p.append('pass', document.getElementById('wifi-pass-input').value);
+        send(p, 'Connecting... the new IP appears here in about 15 seconds. The CarTouch AP stays on.');
+    });
+    document.getElementById('wifi-forget-btn').addEventListener('click', function() {
+        const p = new URLSearchParams();
+        p.append('forget', '1');
+        send(p, 'Saved router removed.');
+    });
+}
+
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 // Initialization
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
@@ -467,6 +502,7 @@ async function refreshDeviceInfo(){
     if(ble)ble.textContent='BLE: '+(d.bleConnected?'Connected':(d.bleEnabled?'Ready':'Disabled'));
     const wifi=document.getElementById('wifi-info'); if(wifi)wifi.textContent='Mode: '+(d.wifiMode||'Offline');
     const ip=document.getElementById('wifi-ip'); if(ip)ip.textContent='IP: '+(d.ip||'--');
+    const ws2=document.getElementById('wifi-ssid'); if(ws2)ws2.textContent=d.wifiSsid?('Saved router: '+d.wifiSsid+(d.apIp?(' | AP IP: '+d.apIp):'')):(d.apIp?('AP IP: '+d.apIp):'');
     const can=document.getElementById('can-info'); if(can)can.textContent='CAN: '+((d.modules||[]).find(m=>m.id===2)?.state||'UNKNOWN');
     const tx=document.getElementById('can-tx-pin'); if(tx && Number.isInteger(d.canTxPin)) tx.value=d.canTxPin;
     const rx=document.getElementById('can-rx-pin'); if(rx && Number.isInteger(d.canRxPin)) rx.value=d.canRxPin;
@@ -1062,6 +1098,7 @@ document.addEventListener('DOMContentLoaded', function() {
     refreshDeviceInfo();
     setInterval(refreshDeviceInfo, 5000);
     setupPasswordForm();
+    setupWifiForm();
     setupCanConfigForm();
     setupDbcManager();
     setupStorageSettings();

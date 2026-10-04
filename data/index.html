@@ -230,6 +230,15 @@
                 <h3>WiFi</h3>
                 <p id="wifi-info">Mode: Access Point</p>
                 <p id="wifi-ip">IP: 192.168.4.1</p>
+                <p id="wifi-ssid" class="muted"></p>
+                <form id="wifi-form">
+                    <label for="wifi-ssid-input">Join a router (the CarTouch access point stays on)</label>
+                    <input type="text" id="wifi-ssid-input" maxlength="31" placeholder="Router name" autocomplete="off">
+                    <input type="password" id="wifi-pass-input" maxlength="63" placeholder="Router password (empty = open)" autocomplete="off">
+                    <button type="submit">Connect</button>
+                    <button type="button" id="wifi-forget-btn">Forget</button>
+                    <p id="wifi-form-msg" class="muted" aria-live="polite"></p>
+                </form>
             </div>
             <div class="settings-group">
                 <h3>DBC Database</h3>
