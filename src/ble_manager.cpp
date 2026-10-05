@@ -166,9 +166,19 @@ bool BLEManager::begin() {
     gStatus->setValue("READY");
 
     NimBLEAdvertising* advertising = NimBLEDevice::getAdvertising();
-    advertising->addServiceUUID(BLE_SERVICE_UUID);
+    // A BLE advertising packet holds only 31 bytes. Flags (3) + a 128-bit
+    // service UUID (18) + the name "CarTouch-XXXX" (15) = 36 bytes, which is
+    // too big: the radio can refuse to advertise while begin() still looks
+    // successful (the result was never checked), so the phone never sees the
+    // device. Only the name goes in the packet; the service is still found
+    // after connecting.
     advertising->setName(_deviceName.c_str());
     advertising->start();
+
+    if (!advertising->isAdvertising()) {
+        Serial.println("[BLE] ERROR: advertising did not start - device is not visible");
+        return false;
+    }
 
     _started = true;
     Serial.printf("[BLE] Started: %s\n", _deviceName.c_str());

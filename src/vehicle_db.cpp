@@ -156,10 +156,49 @@ void VehicleDB::begin() {
     // not suitable as a standalone profile for the current single-file
     // DBC architecture.
 
+    // Which DBC files really exist? SPIFFS has no file index, so each
+    // SPIFFS.exists() walks the flash (~0.1 s each: 3.6 s for 38 files at
+    // every boot). List the files ONCE and compare names instead.
+    bool present[40] = {false};
+    bool listed = false;
+    {
+        File root = SPIFFS.open("/");
+        if (root) {
+            listed = true;
+            File entry = root.openNextFile();
+            while (entry) {
+                const char* full = entry.name();
+                const char* slash = strrchr(full, '/');
+                const char* base = slash ? slash + 1 : full;
+                for (uint8_t v = 0; v < i; ++v) {
+                    const char* want = _vehicleList[v].dbcFileName;
+                    const char* wslash = strrchr(want, '/');
+                    if (want[0] != '\0' && strcmp(base, wslash ? wslash + 1 : want) == 0) {
+                        present[v] = true;
+                    }
+                }
+                entry.close();
+                entry = root.openNextFile();
+            }
+            root.close();
+        }
+        // Built-in DBC files are always shipped. If the listing found none,
+        // do not trust it: use the slow per-file check instead of hiding
+        // every vehicle.
+        if (listed) {
+            bool anyPresent = false;
+            for (uint8_t v = 0; v < i; ++v) anyPresent = anyPresent || present[v];
+            listed = anyPresent;
+        }
+    }
+
     uint8_t availableCount = 0;
     for (uint8_t sourceIndex = 0; sourceIndex < i; ++sourceIndex) {
         const VehicleProfile& candidate = _vehicleList[sourceIndex];
-        if (candidate.dbcFileName[0] != '\0' && !SPIFFS.exists(candidate.dbcFileName)) {
+        const bool hasDbc = candidate.dbcFileName[0] != '\0';
+        const bool missing = hasDbc &&
+            (listed ? !present[sourceIndex] : !SPIFFS.exists(candidate.dbcFileName));
+        if (missing) {
             Serial.printf("[DB] Hiding unavailable DBC profile: %s\n", candidate.dbcFileName);
             continue;
         }

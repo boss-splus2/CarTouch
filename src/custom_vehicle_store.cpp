@@ -4,6 +4,8 @@
 
 #include "custom_vehicle_store.h"
 #include <SPIFFS.h>
+#include <cstring>
+#include <cstdio>
 #include <ArduinoJson.h>
 #include "ct_json_validation.h"
 
@@ -42,24 +44,101 @@ CustomVehicleStore::CustomVehicleStore() {
 // ○○○○○○○○○○ Init
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
+// SPIFFS keeps no file index: every exists()/remove() of a name that is not
+// there walks the whole flash (about 0.3 s each on a 6 MB partition). The old
+// boot code did ~60 such lookups and took ~17 s. Instead, list the folder ONCE
+// and remember which of this store's files really exist.
+struct CvsBootScan {
+    bool legacy[MAX_CUSTOM_VEHICLES];   // profile_N.json (old naming)
+    bool leftover[MAX_CUSTOM_VEHICLES + 1];  // slot N (last = index): .tmp or .bak present
+    bool anyFile;                       // any store file at all
+};
+
+static bool cvsBaseNameIs(const char* base, const char* prefix, uint8_t slot, const char* suffix) {
+    char expected[40];
+    snprintf(expected, sizeof(expected), "%s%u%s", prefix, (unsigned)slot, suffix);
+    return strcmp(base, expected) == 0;
+}
+
+// Returns false if the folder could not be listed (caller then uses the
+// slower per-file checks, which behave exactly as before).
+static bool cvsScanFiles(CvsBootScan& scan) {
+    memset(&scan, 0, sizeof(scan));
+    File root = SPIFFS.open("/");
+    if (!root) return false;
+
+    File entry = root.openNextFile();
+    while (entry) {
+        const char* full = entry.name();
+        const char* slash = strrchr(full, '/');
+        const char* base = slash ? slash + 1 : full;
+
+        if (strcmp(base, "index.json") == 0) {
+            scan.anyFile = true;
+        } else if (strcmp(base, "index.json.tmp") == 0 || strcmp(base, "index.json.bak") == 0) {
+            scan.anyFile = true;
+            scan.leftover[MAX_CUSTOM_VEHICLES] = true;
+        } else {
+            for (uint8_t i = 0; i < MAX_CUSTOM_VEHICLES; ++i) {
+                if (cvsBaseNameIs(base, "p", i, ".json")) {
+                    scan.anyFile = true;
+                } else if (cvsBaseNameIs(base, "p", i, ".json.tmp") ||
+                           cvsBaseNameIs(base, "p", i, ".json.bak")) {
+                    scan.anyFile = true;
+                    scan.leftover[i] = true;
+                } else if (cvsBaseNameIs(base, "profile_", i, ".json")) {
+                    scan.anyFile = true;
+                    scan.legacy[i] = true;
+                }
+            }
+        }
+        entry.close();
+        entry = root.openNextFile();
+    }
+    root.close();
+    return true;
+}
+
 bool CustomVehicleStore::begin() {
-    if (!SPIFFS.exists(CUSTOM_VEHICLES_DIR)) {
-        // SPIFFS on ESP32 has no real directories (it's flat), but the
-        // path prefix is kept for logical consistency and readability.
-        // No mkdir needed since SPIFFS.open works with the full path.
+    // SPIFFS on ESP32 has no real directories (it's flat), so there is
+    // nothing to create: files are opened by their full path.
+    CvsBootScan scan;
+    bool scanned = cvsScanFiles(scan);
+    // Safety check: an empty listing is only trusted if one direct lookup
+    // agrees. If the listing ever misses files, fall back to the slow
+    // per-file checks instead of hiding saved profiles.
+    if (scanned && !scan.anyFile && SPIFFS.exists(INDEX_FILE_PATH)) scanned = false;
+
+    // Fresh device: no custom profile files exist, so there is nothing to
+    // migrate, recover or rebuild. Skip all of it (this is the common case
+    // and used to cost ~17 s at every boot).
+    if (scanned && !scan.anyFile) {
+        _initialized = true;
+        Serial.println("[CVS] No custom profile files - nothing to load");
+        Serial.printf("[CVS] CustomVehicleStore ready - %d profile(s) found\n", getProfileCount());
+        return true;
     }
 
     // One-time migration from the legacy "profile_N.json" names (31 chars, so
     // they could not be journaled) to the short "pN.json" names.
+    bool migrated = false;
     for (uint8_t i = 0; i < MAX_CUSTOM_VEHICLES; ++i) {
+        if (scanned && !scan.legacy[i]) continue;
         const String legacyPath = String(CVS_LEGACY_PROFILE_PREFIX) + String(i) + ".json";
         if (!SPIFFS.exists(legacyPath)) continue;
         if (SPIFFS.exists(_profilePath(i))) SPIFFS.remove(legacyPath);
         else SPIFFS.rename(legacyPath, _profilePath(i));
+        migrated = true;
     }
+    if (migrated && scanned) cvsScanFiles(scan);   // names changed: list again
 
-    _recoverAtomicFile(INDEX_FILE_PATH);
-    for (uint8_t i = 0; i < MAX_CUSTOM_VEHICLES; ++i) _recoverAtomicFile(_profilePath(i));
+    // Crash recovery is only needed when an interrupted save left a .tmp or
+    // .bak file behind; with no leftovers it would only remove files that are
+    // not there.
+    if (!scanned || scan.leftover[MAX_CUSTOM_VEHICLES]) _recoverAtomicFile(INDEX_FILE_PATH);
+    for (uint8_t i = 0; i < MAX_CUSTOM_VEHICLES; ++i) {
+        if (!scanned || scan.leftover[i]) _recoverAtomicFile(_profilePath(i));
+    }
 
     bool result = _loadIndex();
     _initialized = result;
