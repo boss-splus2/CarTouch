@@ -76,6 +76,11 @@ struct VehicleProfile {
     char     dbcFileName[32]     = {0};
 };
 
+// Capacity of the built-in vehicle list (begin() adds entries up to this limit).
+#ifndef CT_MAX_VEHICLES
+#define CT_MAX_VEHICLES 40
+#endif
+
 class VehicleDB {
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -133,9 +138,9 @@ private:
     uint16_t         _messageCount;
     VehicleProfile   _activeVehicle;
 
-    // 40 entries - covers the selectable profiles wired in begin(), including
+    // CT_MAX_VEHICLES entries - covers the selectable profiles wired in begin(), including
     // the Generic OBD-II entry, with a small safety margin.
-    VehicleProfile   _vehicleList[40];
+    VehicleProfile   _vehicleList[CT_MAX_VEHICLES];
     uint8_t           _vehicleCount;
     bool               _initialized;
 

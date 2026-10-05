@@ -42,6 +42,18 @@ static inline uint32_t ctClientIp(AsyncWebServerRequest* r) {
 }
 #include <stdlib.h>
 
+// Constant-time string comparison (same idea as the BLE OTA check) so the
+// response time does not reveal how much of a guess was correct.
+static bool ctSecureEquals(const char* expected, const String& given) {
+    const size_t el = strlen(expected);
+    const size_t gl = given.length();
+    uint8_t diff = (uint8_t)(el != gl);
+    for (size_t i = 0; i < el; ++i) {
+        diff |= (uint8_t)((uint8_t)expected[i] ^ (i < gl ? (uint8_t)given[i] : 0));
+    }
+    return diff == 0;
+}
+
 namespace {
 static const size_t DBC_LIST_LIMIT = 64;
 static const size_t DBC_HTTP_BODY_LIMIT = CT_DBC_MAX_BYTES + 2048u;
@@ -557,7 +569,10 @@ void WebServerManager::begin(uint16_t port) {
         String     pass = request->arg("pass");
         AppConfig* cfg  = getConfig();
 
-        if (user.equals(cfg->webUser) && pass.equals(cfg->webPass)) {
+        // Both fields are always compared (no early exit) in constant time.
+        const bool userOk = ctSecureEquals(cfg->webUser, user);
+        const bool passOk = ctSecureEquals(cfg->webPass, pass);
+        if (userOk && passOk) {
             _registerLoginSuccess(ip);
             _activity = true;
             _sessionToken = _generateSessionToken();

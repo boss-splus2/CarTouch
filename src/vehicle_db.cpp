@@ -31,6 +31,14 @@ VehicleDB::VehicleDB() {
 static inline void _addVeh(VehicleProfile* list, uint8_t& count,
                             const char* brand, const char* model,
                             const char* file, uint16_t y0, uint16_t y1) {
+    // Never write past the end of the list: extra entries are skipped (and
+    // reported once on the serial log) instead of corrupting memory.
+    if (count >= CT_MAX_VEHICLES) {
+        Serial.printf("[DB] Vehicle list full (%d) - skipping %s %s\n",
+                      CT_MAX_VEHICLES, brand, model);
+        return;
+    }
+    memset(&list[count], 0, sizeof(list[count]));
     strncpy(list[count].brand,       brand, sizeof(list[count].brand) - 1);
     strncpy(list[count].model,       model, sizeof(list[count].model) - 1);
     strncpy(list[count].dbcFileName, file,  sizeof(list[count].dbcFileName) - 1);
@@ -159,7 +167,7 @@ void VehicleDB::begin() {
     // Which DBC files really exist? SPIFFS has no file index, so each
     // SPIFFS.exists() walks the flash (~0.1 s each: 3.6 s for 38 files at
     // every boot). List the files ONCE and compare names instead.
-    bool present[40] = {false};
+    bool present[CT_MAX_VEHICLES] = {false};
     bool listed = false;
     {
         File root = SPIFFS.open("/");
