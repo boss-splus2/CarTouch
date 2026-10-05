@@ -331,6 +331,29 @@ void setup() {
     // until then, resolveCommand() reports "no vehicle selected" instead
     // of sending anything.
 
+    // 7b. Wi-Fi + BLE are started BEFORE the TFT on purpose. tftUI.begin() can
+    // block for up to ~20 s (first-boot touch calibration when no touch panel
+    // is wired yet), and the radios used to wait behind it, so the access
+    // point and BLE appeared very late. Neither needs the display.
+    //  - Wi-Fi: the access point starts at once; joining a saved router runs
+    //    in the background from wifiManager.update() (no waiting here).
+    //  - BLE: advertising starts now, but its command callback is attached only
+    //    after the TFT exists (handleCommand() may touch the UI). Until then a
+    //    BLE command just gets COMMAND_UNAVAILABLE.
+    moduleStatusManager.setState(MODULE_WIFI, MODULE_INITIALIZING);
+    wifiManager.begin(getConfig()->wifiSSID[0] ? 2 : 1);
+    moduleStatusManager.setState(MODULE_WIFI,
+        wifiManager.isEnabled() && wifiManager.isConnected() ? MODULE_READY :
+        (wifiManager.isEnabled() ? MODULE_ERROR : MODULE_DISABLED));
+
+    moduleStatusManager.setState(MODULE_BLE, MODULE_INITIALIZING);
+    if (!bleManager.begin()) {
+        Serial.println("[BLE] Failed to start BLE");
+        moduleStatusManager.setState(MODULE_BLE, MODULE_ERROR);
+    } else {
+        moduleStatusManager.setState(MODULE_BLE, MODULE_READY);
+    }
+
     // 8. TFT + LVGL. Learn Mode modules must be attached before begin() -
     // otherwise the Learn tab's internal pointers stay null.
     tftUI.attachLearnModules(&learnEngine, &customVehicleStore,
@@ -362,24 +385,10 @@ void setup() {
     }
 #endif
 
-    // 9. WiFi (AP mode by default)
-    moduleStatusManager.setState(MODULE_WIFI, MODULE_INITIALIZING);
-    // AP always; if a router was saved, join it as well (AP stays up).
-    wifiManager.begin(getConfig()->wifiSSID[0] ? 2 : 1);
+    // The radios were already started in step 7b (before the TFT). Only the
+    // parts that need the display or the command handler are done here.
     tftUI.setWiFiStatus(wifiManager.isConnected());
-    moduleStatusManager.setState(MODULE_WIFI,
-        wifiManager.isEnabled() && wifiManager.isConnected() ? MODULE_READY :
-        (wifiManager.isEnabled() ? MODULE_ERROR : MODULE_DISABLED));
-
-    // 10. BLE - starts independently of Wi-Fi so local BLE access remains available.
-    moduleStatusManager.setState(MODULE_BLE, MODULE_INITIALIZING);
     bleManager.setCommandCallback(handleCommand);
-    if (!bleManager.begin()) {
-        Serial.println("[BLE] Failed to start BLE");
-        moduleStatusManager.setState(MODULE_BLE, MODULE_ERROR);
-    } else {
-        moduleStatusManager.setState(MODULE_BLE, MODULE_READY);
-    }
 
     // 11. Web server - attach Learn Mode modules before begin()
     webServer.attachLearnModules(&learnEngine, &customVehicleStore,

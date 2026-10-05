@@ -88,9 +88,12 @@ void WiFiManager::_beginSta(const char* ssid, const char* pass) {
     _connectStart = millis();
 }
 
-// Boot-time connect: waits (setup() only; the watchdog is not running yet).
-// The access point stays up beside the router connection, so the device is
-// always reachable at its own network even if the router goes away.
+// Boot-time connect: NON-BLOCKING. The access point comes up immediately and
+// the router join is started in the background; update() (called every loop)
+// finishes it, applies the WIFI_TIMEOUT_MS limit and keeps retrying later.
+// The old version waited here for up to 10 s, which delayed everything that
+// started after Wi-Fi (BLE, web server). The access point stays up beside the
+// router connection, so the device is always reachable at its own network.
 void WiFiManager::_startSTA() {
     AppConfig* cfg = getConfig();
 
@@ -102,27 +105,8 @@ void WiFiManager::_startSTA() {
 
     _startAP();
     _beginSta(cfg->wifiSSID, cfg->wifiPassword);
-    Serial.printf("[WiFi] Connecting to %s...\n", cfg->wifiSSID);
-
-    int retry = 0;
-    while (WiFi.status() != WL_CONNECTED && retry < WIFI_MAX_RETRY) {
-        delay(500);
-        Serial.print(".");
-        retry++;
-    }
-    _connecting = false;
     _lastAttempt = millis();
-
-    if (WiFi.status() == WL_CONNECTED) {
-        _state = CT_WIFI_STA;
-        Serial.printf("\n[WiFi] Connected! IP: %s (AP %s still on)\n",
-                      WiFi.localIP().toString().c_str(), WiFi.softAPIP().toString().c_str());
-    } else {
-        getErrorLog()->log(LOG_CAT_WIFI, LOG_WARN, "Connect failed - staying in AP mode");
-        WiFi.disconnect(false);
-        WiFi.mode(WIFI_AP);
-        _state = CT_WIFI_AP;
-    }
+    Serial.printf("[WiFi] Connecting to %s in the background (AP stays up)\n", cfg->wifiSSID);
 }
 
 void WiFiManager::requestConnect(const char* ssid, const char* password) {
