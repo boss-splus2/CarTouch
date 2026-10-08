@@ -30,6 +30,7 @@
 #include "ct_http_body_limit.h"
 #include "ct_sync_policy.h"
 #include "ct_command_guard.h"
+#include "ct_command_actuator.h"
 
 void setUp(void) {}
 void tearDown(void) {}
