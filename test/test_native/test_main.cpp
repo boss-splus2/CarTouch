@@ -14,7 +14,6 @@
 #include "ct_buttons.h"
 #include "ct_json_validation.h"
 #include "ct_origin.h"
-#include "ct_command_guard.h"
 #include "ct_battery.h"
 #include "ct_obd_validity.h"
 #include "ct_obd_formulas.h"
@@ -30,6 +29,7 @@
 #include "ct_dbc_manifest.h"
 #include "ct_http_body_limit.h"
 #include "ct_sync_policy.h"
+#include "ct_command_guard.h"
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -1339,6 +1339,8 @@ void test_sync_policy_buttons_gpio_conflicts_with_sd_cs(void) {
     TEST_ASSERT_FALSE(ctSync().validateButtonsVsGivenSdCs(btnPins, 5));
 }
 
+
+
 void test_host_guard_allows_only_device_ips(void) {
     // AP only
     TEST_ASSERT_TRUE(ctHostAllowed("192.168.4.1", "192.168.4.1", nullptr, "CarTouch"));
@@ -1387,6 +1389,15 @@ void test_command_gate_applies_to_every_source(void) {
     // Empty / NULL
     TEST_ASSERT_EQUAL(CT_CMD_REJECT_INVALID, ctCommandGate(true, false, ""));
     TEST_ASSERT_EQUAL(CT_CMD_REJECT_INVALID, ctCommandGate(true, false, nullptr));
+}
+
+
+void test_command_actuator_metadata_is_explicit(void) {
+    TEST_ASSERT_EQUAL(COMMAND_ACTUATOR_WINDOW, ctSuggestedActuatorClassForStandardLabel("window_fl_up"));
+    TEST_ASSERT_EQUAL(COMMAND_ACTUATOR_SUNROOF, ctSuggestedActuatorClassForStandardLabel("sunroof_open"));
+    TEST_ASSERT_EQUAL(COMMAND_ACTUATOR_MIRROR, ctSuggestedActuatorClassForStandardLabel("mirror_fold"));
+    TEST_ASSERT_EQUAL(COMMAND_ACTUATOR_NONE, ctSuggestedActuatorClassForStandardLabel("lock_all"));
+    TEST_ASSERT_EQUAL(COMMAND_ACTUATOR_UNKNOWN, ctSuggestedActuatorClassForStandardLabel("my_custom_button"));
 }
 
 int main(int, char**) {
@@ -1439,8 +1450,6 @@ int main(int, char**) {
     RUN_TEST(test_json_command_rejects_unsafe_label);
     RUN_TEST(test_label_safe_rejects_html_and_quotes);
     RUN_TEST(test_origin_guard_blocks_cross_site_only);
-    RUN_TEST(test_host_guard_allows_only_device_ips);
-    RUN_TEST(test_command_gate_applies_to_every_source);
     RUN_TEST(test_vehicle_tx_guard_blocks_when_config_or_driver_listen_only);
     RUN_TEST(test_bus_route_selector_is_sanitised);
     RUN_TEST(test_mcp2515_8mhz_timing_table_decodes_to_requested_bitrates);
@@ -1486,5 +1495,9 @@ int main(int, char**) {
     RUN_TEST(test_sync_policy_sd_cs_conflicts_with_button_gpio);
     RUN_TEST(test_sync_policy_buttons_gpio_vs_sd_cs_no_conflict);
     RUN_TEST(test_sync_policy_buttons_gpio_conflicts_with_sd_cs);
+    RUN_TEST(test_host_guard_allows_only_device_ips);
+    RUN_TEST(test_command_gate_applies_to_every_source);
+    RUN_TEST(test_command_actuator_metadata_is_explicit);
     return UNITY_END();
 }
+
