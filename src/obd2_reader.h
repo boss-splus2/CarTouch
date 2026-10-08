@@ -57,7 +57,7 @@ class OBD2Reader {
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 public:
-    OBD2Reader(CANService& canService);
+    explicit OBD2Reader(CANService& canService);
 
     void begin();
     bool setCanBus(CanBusId bus);

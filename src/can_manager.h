@@ -27,7 +27,7 @@ class CANManager : public CanInterface {
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 public:
-    CANManager(uint8_t  txPin = PIN_CAN_TX,
+    explicit CANManager(uint8_t  txPin = PIN_CAN_TX,
                uint8_t  rxPin = PIN_CAN_RX,
                uint32_t speed = CAN_SPEED);
 

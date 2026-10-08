@@ -109,7 +109,7 @@ struct LearnEngineSnapshot {
 
 class LearnEngine {
 public:
-    LearnEngine(CANService& canService);
+    explicit LearnEngine(CANService& canService);
     bool setCanBus(CanBusId bus);
     CanBusId getCanBus();
 

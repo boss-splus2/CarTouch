@@ -553,7 +553,8 @@ float VehicleDB::extractSignalValue(const DbcSignal& signal, const uint8_t* data
     uint64_t rawValue  = 0;
     // Defensive clamp: the parser already enforces 1..64, but this is a
     // public entry point so keep every shift width valid regardless.
-    uint8_t  totalBits = (signal.length > 64) ? 64 : signal.length;
+    uint8_t  totalBits = signal.length;
+    if (totalBits > 64) totalBits = 64;
 
     // i=0 maps to bit 0 of rawValue for Intel (already the LSB), and to
     // the top bit (totalBits-1) for Motorola (where i=0 is the MSB) -
@@ -605,7 +606,8 @@ void VehicleDB::encodeSignalValue(const DbcSignal& signal, float value, uint8_t*
         rawValue = (uint64_t)((value - signal.offset) / scale);
     }
 
-    uint8_t totalBits = (signal.length > 64) ? 64 : signal.length;
+    uint8_t totalBits = signal.length;
+    if (totalBits > 64) totalBits = 64;
 
     // Mirrors extractSignalValue's bit mapping, in reverse.
     for (int i = 0; i < totalBits; i++) {

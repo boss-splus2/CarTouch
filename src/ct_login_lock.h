@@ -28,6 +28,7 @@ static inline void ctLoginFailed(CtLoginLock& l, uint32_t nowMs) {
     if (++l.fails >= CT_LOGIN_MAX_FAILS) {
         l.fails = 0;
         l.lockUntil = nowMs + CT_LOGIN_LOCK_MS;
+        // cppcheck-suppress knownConditionTrueFalse -- millis() wrap can produce 0.
         if (l.lockUntil == 0) l.lockUntil = 1;    // 0 means "not locked"
     }
 }
