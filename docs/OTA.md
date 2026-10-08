@@ -1,33 +1,35 @@
-# CarTouch OTA
+# 🔄 OTA
 
-این سند رفتار واقعی OTA در نسخه فعلی را توضیح می‌دهد.
+OTA برای firmware از مسیر Web و BLE در دسترس است. هر تراکنش باید مالک مشخص داشته باشد؛ Web و BLE نمی‌توانند هم‌زمان یک OTA را مالک شوند.
 
 ## Web OTA
 
-- firmware و filesystem از Web احراز‌شده قابل به‌روزرسانی هستند.
-- Web OTA از مسیر مرکزی authentication/lockout استفاده می‌کند.
-- مالکیت OTA با `src/ct_ota_lock.*` ثبت می‌شود تا BLE و Web نتوانند هم‌زمان یک عملیات firmware را کنترل کنند.
-- firmware روی app slot غیرفعال نوشته می‌شود و تا finalize شدن کامل، slot جدید فعال نمی‌شود.
-- SHA-256 فقط integrity check است و امضای دیجیتال یا اصالت سازنده را ثابت نمی‌کند.
-- HTTPS در پروژه وجود ندارد؛ Web OTA روی HTTP اجرا می‌شود.
+Web OTA می‌تواند image firmware و filesystem را دریافت کند. برای firmware، SHA-256 مربوط به **همان artifact** باید ارائه شود.
+
+| کنترل | وضعیت |
+|---|---|
+| Firmware target | inactive application slot |
+| Integrity | SHA-256 |
+| Digital signature | ❌ وجود ندارد |
+| HTTPS/TLS داخل firmware | ❌ وجود ندارد |
+| Automatic post-boot rollback | ❌ وجود ندارد |
+| Filesystem automatic power-loss recovery | ❌ وجود ندارد |
+| محافظت از user data هنگام filesystem replacement | ✅ وجود دارد |
 
 ## BLE OTA
 
-BLE OTA به password فعلی و digest دقیق artifact نیاز دارد. قالب قدیمی `START` بدون SHA-256 رد می‌شود. جزئیات پروتکل در `BLE_OTA.md` است. BLE فقط در صورت موفقیت `tryAcquire(CT_OTA_OWNER_BLE)` مالک OTA می‌شود و نمی‌تواند OTA متعلق به Web را abort کند.
+BLE OTA نیازمند احراز هویت با password فعلی و SHA-256 image است. فرم legacy که hash ندارد پذیرفته نمی‌شود.
 
-## مالکیت و lifecycle
+جزئیات protocol و ترتیب پیام‌ها در [`../BLE_OTA.md`](../BLE_OTA.md) مستند شده است.
 
-در هر لحظه فقط یکی از `NONE`, `WEB`, `BLE` owner است. release در مسیرهای موفقیت و خطای شناخته‌شده انجام می‌شود.
+## نکات امنیتی
 
 > [!WARNING]
-> **محدودیت باقی‌مانده:** اگر کلاینت Web در میانه‌ی upload بدون رسیدن به مسیر cleanup قطع شود، timeout خودکار مستقل برای آزادکردن lock هنوز وجود ندارد. این مورد باید پیش از ادعای lifecycle کامل/self-healing OTA با watchdog/timeout تکمیل شود.
+> SHA-256 فقط **integrity** را بررسی می‌کند؛ امضای دیجیتال و اصالت منبع image را اثبات نمی‌کند.
 
-## Filesystem OTA
+> [!WARNING]
+> OTA روی HTTP بدون TLS در firmware فعلی اجرا می‌شود. برای deployment واقعی باید یک مسیر امن و کنترل‌شده برای انتقال image در نظر گرفته شود.
 
-filesystem یک partition دارد و slot دوم ندارد. شکست digest یا قطع برق می‌تواند filesystem را unusable کند. Web OTA از نوشتن زمانی که داده‌ی داخلی محافظت‌شده وجود دارد جلوگیری می‌کند، اما restore خودکار وجود ندارد.
+## مالکیت تراکنش
 
-## اعتبار artifact
-
-SHA-256 را فقط از artifact مورداعتماد همان release بردارید. digest بدون signature در برابر attacker فعال اصالت release را اثبات نمی‌کند.
-
-منبع یگانه نسخه firmware: `CAR_TOUCH_FIRMWARE_VERSION` در `src/config.h`.
+در شروع OTA، مسیر Web یا BLE مالک تراکنش را می‌گیرد. مسیر دیگر نباید update جاری را متوقف یا جایگزین کند. مالکیت پس از پایان موفق یا خطای قابل‌شناسایی آزاد می‌شود.

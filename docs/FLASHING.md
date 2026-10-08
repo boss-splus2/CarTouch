@@ -1,10 +1,12 @@
-# Manual flashing
+# 🔧 فلش دستی
 
-## 16 MB profile
+> این سند فقط فرآیند فلش را توضیح می‌دهد. مشخصات سخت‌افزار در [`../CarTouch_SPEC.md`](../CarTouch_SPEC.md) و محدودیت‌های OTA در [`OTA.md`](OTA.md) قرار دارند.
 
-Use image files from the **same CI profile directory**:
+## 16 MB
 
-| File | Address |
+از imageهای **یک profile واحد** استفاده کنید:
+
+| Image | Address |
 |---|---:|
 | `bootloader.bin` | `0x0` |
 | `partitions.bin` | `0x8000` |
@@ -12,12 +14,20 @@ Use image files from the **same CI profile directory**:
 | `firmware.bin` | `0x10000` |
 | `spiffs.bin` | `0xA10000` |
 
-Use ESP32-S3, 16 MB flash, 80 MHz and QIO. If the board does not boot, DIO is a diagnostic fallback. `boot_app0.bin` is written separately at `0xE000`.
+تنظیمات پایه: ESP32-S3، فلش 16 MB، QIO و 80 MHz. در صورت مشکل boot، DIO فقط به‌عنوان مسیر عیب‌یابی بررسی شود.
 
-## 4 MB profiles
+## 4 MB
 
-The system images use the same bootloader/partition/firmware addresses; `spiffs.bin` starts at `0x310000`.
+در profileهای 4 MB، آدرس‌های bootloader، partition table و firmware همان مسیر بالا هستند و `spiffs.bin` از `0x310000` شروع می‌شود.
 
-The 4 MB filesystem is deliberately reduced and cannot contain the complete DBC collection. Do not mix images from different profiles.
+Filesystem کوچک‌شده نمی‌تواند مجموعه کامل DBC را در خود جای دهد. imageهای profileهای مختلف را با هم ترکیب نکنید.
 
-`uploadfs` replaces the SPIFFS image. Export/backup user profiles, recordings and user DBC data first.
+> [!WARNING]
+> اجرای `uploadfs` می‌تواند filesystem را جایگزین کند. پیش از آن از profileهای کاربر، recordingها و DBCهای کاربر پشتیبان بگیرید.
+
+## بررسی پس از فلش
+
+1. دستگاه را با Serial متصل کنید.
+2. بوت و وضعیت CAN را بررسی کنید.
+3. ابتدا Listen-Only را نگه دارید.
+4. سپس فقط روی bench setup وارد Learn/Verification شوید.

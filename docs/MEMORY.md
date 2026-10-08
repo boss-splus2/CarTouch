@@ -1,18 +1,30 @@
-# Memory and heap measurement
+# 📊 اندازه‌گیری حافظه
 
-Connect USB Serial at 115200 and run:
+این سند برای مشاهده وضعیت heap و stack در زمان اجراست.
+
+## فرمان
+
+از USB Serial با سرعت `115200` اجرا کنید:
 
 ```text
 memory
 ```
 
-The command reports:
+خروجی شامل این موارد است:
 
-- current/minimum internal heap,
-- largest allocatable internal block,
-- PSRAM total/free/minimum/largest block,
-- minimum free stack reported for the main loop task.
+- heap داخلی فعلی و minimum؛
+- بزرگ‌ترین بلوک قابل تخصیص در heap داخلی؛
+- total/free/minimum/largest برای PSRAM؛
+- minimum free stack گزارش‌شده برای task حلقه اصلی.
 
-For a meaningful measurement, reboot first so minimum counters start from a fresh boot, then exercise heavy simultaneous workloads such as Web, dual-CAN recording, DBC loading and BLE.
+## روش اندازه‌گیری
 
-This does not measure independent AsyncTCP/BLE task stacks. Hardware measurements are not replaced by build or simulation results.
+برای نتیجه قابل‌مقایسه:
+
+1. ابتدا reboot کنید تا شمارنده‌های minimum از وضعیت تازه شروع شوند.
+2. Web و BLE را در صورت نیاز فعال کنید.
+3. بارهای سنگین مانند recording روی CAN، بارگذاری DBC و عملیات هم‌زمان را اجرا کنید.
+4. خروجی `memory` را ثبت و با نمونه‌های قبلی مقایسه کنید.
+
+> [!NOTE]
+> این اندازه‌گیری جایگزین اندازه‌گیری مستقل stackهای taskهای AsyncTCP/BLE یا آزمون سخت‌افزاری نیست.
