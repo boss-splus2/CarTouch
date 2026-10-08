@@ -255,8 +255,8 @@ flowchart LR
 <td align="center"><b>سیگنال</b></td>
 <td align="center"><b>GPIO</b></td>
 </tr>
-<tr><td align="center">CAN1 / TWAI TX</td><td align="center">17</td></tr>
-<tr><td align="center">CAN1 / TWAI RX</td><td align="center">18</td></tr>
+<tr><td align="center">CAN1 / TWAI TX</td><td align="center">9</td></tr>
+<tr><td align="center">CAN1 / TWAI RX</td><td align="center">6</td></tr>
 <tr><td align="center">TFT CS</td><td align="center">10</td></tr>
 <tr><td align="center">TFT DC</td><td align="center">7</td></tr>
 <tr><td align="center">TFT RST</td><td align="center">4</td></tr>
