@@ -20,8 +20,8 @@
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // CAN1 - ESP32-S3 TWAI with an external 3.3V-compatible transceiver.
-#define PIN_CAN_TX 9    // GPIO9  - CAN Transmit
-#define PIN_CAN_RX 6    // GPIO6  - CAN Receive (moved from GPIO10 to avoid conflict with TFT_CS)
+#define PIN_CAN_TX 17   // GPIO17 - CAN Transmit (next to GPIO18 = same order as CTX/CRX on the TJA1051 module)
+#define PIN_CAN_RX 18   // GPIO18 - CAN Receive
 
 #define PIN_CAN1_CS  15    // MCP2515 CS; SPI lines are shared with TFT/Touch
 #define PIN_CAN1_INT 16    // MCP2515 active-low interrupt
