@@ -28,7 +28,19 @@ def main():
     vdb = (root / "src/vehicle_db.h").read_text(errors="replace")
     cap_store = find(store, r"#define\s+CT_DBC_MAX_MESSAGES\s+(\d+)", "CT_DBC_MAX_MESSAGES")
     name_max = find(store, r"#define\s+CT_DBC_NAME_MAX\s+(\d+)", "CT_DBC_NAME_MAX")
-    cap_vdb = find(vdb, r"#define\s+MAX_DBC_MESSAGES\s+(\d+)", "MAX_DBC_MESSAGES")
+    m_vdb = re.search(r"#define\s+MAX_DBC_MESSAGES\s+(.+)", vdb)
+    if not m_vdb:
+        print("ERROR: could not find MAX_DBC_MESSAGES")
+        sys.exit(1)
+    expr = m_vdb.group(1).strip()
+    if expr.isdigit():
+        cap_vdb = int(expr)
+    else:
+        m_alias = re.search(r"#define\s+CT_DBC_MAX_MESSAGES\s+(\d+)", store)
+        if not m_alias or expr != "CT_DBC_MAX_MESSAGES":
+            print("ERROR: MAX_DBC_MESSAGES is not a resolvable DBC limit")
+            sys.exit(1)
+        cap_vdb = int(m_alias.group(1))
     field = find(vdb, r"char\s+dbcFileName\[(\d+)\]", "dbcFileName size")
     prefix = len("/dbc/")
     bad = []
