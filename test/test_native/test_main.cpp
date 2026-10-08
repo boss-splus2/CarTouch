@@ -14,6 +14,7 @@
 #include "ct_buttons.h"
 #include "ct_json_validation.h"
 #include "ct_origin.h"
+#include "ct_command_guard.h"
 #include "ct_battery.h"
 #include "ct_obd_validity.h"
 #include "ct_obd_formulas.h"
@@ -1338,6 +1339,56 @@ void test_sync_policy_buttons_gpio_conflicts_with_sd_cs(void) {
     TEST_ASSERT_FALSE(ctSync().validateButtonsVsGivenSdCs(btnPins, 5));
 }
 
+void test_host_guard_allows_only_device_ips(void) {
+    // AP only
+    TEST_ASSERT_TRUE(ctHostAllowed("192.168.4.1", "192.168.4.1", nullptr, "CarTouch"));
+    TEST_ASSERT_TRUE(ctHostAllowed("192.168.4.1:80", "192.168.4.1", "", "CarTouch"));
+    TEST_ASSERT_TRUE(ctHostAllowed("192.168.4.1:8080", "192.168.4.1", "0.0.0.0", "CarTouch"));
+    // STA address
+    TEST_ASSERT_TRUE(ctHostAllowed("10.0.0.23", "192.168.4.1", "10.0.0.23", "CarTouch"));
+    TEST_ASSERT_TRUE(ctHostAllowed("10.0.0.23:80", "192.168.4.1", "10.0.0.23", "CarTouch"));
+    TEST_ASSERT_TRUE(ctHostAllowed("cartouch", "192.168.4.1", nullptr, "CarTouch"));
+    TEST_ASSERT_TRUE(ctHostAllowed("CarTouch:80", "192.168.4.1", nullptr, "CarTouch"));
+    // header absent (non-browser HTTP/1.0 tool)
+    TEST_ASSERT_FALSE(ctHostAllowed(nullptr, "192.168.4.1", nullptr, "CarTouch"));
+    TEST_ASSERT_FALSE(ctHostAllowed("", "192.168.4.1", nullptr, "CarTouch"));
+    // DNS rebinding: attacker name resolved to the device IP
+    TEST_ASSERT_FALSE(ctHostAllowed("evil.example", "192.168.4.1", nullptr, "CarTouch"));
+    TEST_ASSERT_FALSE(ctHostAllowed("evil.example:80", "192.168.4.1", nullptr, "CarTouch"));
+    TEST_ASSERT_FALSE(ctHostAllowed("192.168.4.1.evil.example", "192.168.4.1", nullptr, "CarTouch"));
+    TEST_ASSERT_FALSE(ctHostAllowed("192.168.4.10", "192.168.4.1", nullptr, "CarTouch"));
+    TEST_ASSERT_FALSE(ctHostAllowed("localhost", "192.168.4.1", nullptr, "CarTouch"));
+    // malformed port / empty host part
+    TEST_ASSERT_FALSE(ctHostAllowed("192.168.4.1:", "192.168.4.1", nullptr, "CarTouch"));
+    TEST_ASSERT_FALSE(ctHostAllowed("192.168.4.1:80a", "192.168.4.1", nullptr, "CarTouch"));
+    TEST_ASSERT_FALSE(ctHostAllowed(":80", "192.168.4.1", nullptr, "CarTouch"));
+    // an unconnected STA ("0.0.0.0" / empty) never matches
+    TEST_ASSERT_FALSE(ctHostAllowed("0.0.0.0", "192.168.4.1", "0.0.0.0", "CarTouch"));
+}
+
+void test_command_gate_applies_to_every_source(void) {
+    // Active, not Listen-Only: actuators allowed
+    TEST_ASSERT_EQUAL(CT_CMD_ALLOW, ctCommandGate(true, false, "lock"));
+    // Listen-Only: actuators and unknown/learn-style names rejected, config allowed
+    TEST_ASSERT_EQUAL(CT_CMD_REJECT_LISTEN_ONLY, ctCommandGate(true, true, "lock"));
+    TEST_ASSERT_EQUAL(CT_CMD_REJECT_LISTEN_ONLY, ctCommandGate(true, true, "trunk"));
+    TEST_ASSERT_EQUAL(CT_CMD_REJECT_LISTEN_ONLY, ctCommandGate(true, true, "learn_verify_send"));
+    TEST_ASSERT_EQUAL(CT_CMD_REJECT_LISTEN_ONLY, ctCommandGate(true, true, "not_a_command"));
+    TEST_ASSERT_EQUAL(CT_CMD_ALLOW, ctCommandGate(true, true, "listen_only"));
+    TEST_ASSERT_EQUAL(CT_CMD_ALLOW, ctCommandGate(true, true, "vehicle_select_dbc:x.dbc"));
+    TEST_ASSERT_EQUAL(CT_CMD_ALLOW, ctCommandGate(true, true, "toggle_theme"));
+    // Asleep: actuators rejected, config allowed
+    TEST_ASSERT_EQUAL(CT_CMD_REJECT_ASLEEP, ctCommandGate(false, false, "unlock"));
+    TEST_ASSERT_EQUAL(CT_CMD_REJECT_ASLEEP, ctCommandGate(false, true, "unlock"));
+    TEST_ASSERT_EQUAL(CT_CMD_ALLOW, ctCommandGate(false, false, "vehicle_select_custom:p1"));
+    // Prefix lookalikes are not "safe"
+    TEST_ASSERT_EQUAL(CT_CMD_REJECT_LISTEN_ONLY, ctCommandGate(true, true, "vehicle_selectX"));
+    TEST_ASSERT_EQUAL(CT_CMD_REJECT_LISTEN_ONLY, ctCommandGate(true, true, "listen_only2"));
+    // Empty / NULL
+    TEST_ASSERT_EQUAL(CT_CMD_REJECT_INVALID, ctCommandGate(true, false, ""));
+    TEST_ASSERT_EQUAL(CT_CMD_REJECT_INVALID, ctCommandGate(true, false, nullptr));
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_tx_guard_listen_only);
@@ -1388,6 +1439,8 @@ int main(int, char**) {
     RUN_TEST(test_json_command_rejects_unsafe_label);
     RUN_TEST(test_label_safe_rejects_html_and_quotes);
     RUN_TEST(test_origin_guard_blocks_cross_site_only);
+    RUN_TEST(test_host_guard_allows_only_device_ips);
+    RUN_TEST(test_command_gate_applies_to_every_source);
     RUN_TEST(test_vehicle_tx_guard_blocks_when_config_or_driver_listen_only);
     RUN_TEST(test_bus_route_selector_is_sanitised);
     RUN_TEST(test_mcp2515_8mhz_timing_table_decodes_to_requested_bitrates);
