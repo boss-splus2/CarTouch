@@ -48,60 +48,7 @@ enum CommandStatus : uint8_t {
 // ○○○○○○○○○○ Command source
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
-enum CommandActuatorClass : uint8_t {
-    COMMAND_ACTUATOR_UNKNOWN = 0, // Legacy/unspecified: execution is fail-safe blocked
-    COMMAND_ACTUATOR_NONE    = 1, // Non-motor command (lock/alarm/trunk/etc.)
-    COMMAND_ACTUATOR_WINDOW  = 2,
-    COMMAND_ACTUATOR_SUNROOF = 3,
-    COMMAND_ACTUATOR_MIRROR  = 4
-};
-
-enum CommandSource : uint8_t {
-    SOURCE_DBC     = 0,    // From a DBC file (vehicle_db) - a write signal (rare in practice)
-    SOURCE_LEARNED = 1,    // Captured via Learn Mode from a real physical button press
-    SOURCE_MANUAL  = 2     // Entered manually by the user
-};
-
-// Standard suggested command labels (see CarTouch_SPEC.md). These are just
-// suggested strings - the user can also enter a free-form custom label,
-// so they're defined as plain string constants (not a strict enum) here
-// and reused by both the UI (TFT/web) and executeCommand() so all three
-// stay in sync.
-#define CMD_LABEL_LOCK_ALL         "lock_all"
-#define CMD_LABEL_UNLOCK_ALL       "unlock_all"
-#define CMD_LABEL_UNLOCK_DRIVER    "unlock_driver"
-#define CMD_LABEL_WINDOW_FL_UP     "window_fl_up"
-#define CMD_LABEL_WINDOW_FL_DOWN   "window_fl_down"
-#define CMD_LABEL_WINDOW_FR_UP     "window_fr_up"
-#define CMD_LABEL_WINDOW_FR_DOWN   "window_fr_down"
-#define CMD_LABEL_WINDOW_RL_UP     "window_rl_up"
-#define CMD_LABEL_WINDOW_RL_DOWN   "window_rl_down"
-#define CMD_LABEL_WINDOW_RR_UP     "window_rr_up"
-#define CMD_LABEL_WINDOW_RR_DOWN   "window_rr_down"
-#define CMD_LABEL_ALL_WINDOWS_UP   "all_windows_up"
-#define CMD_LABEL_ALL_WINDOWS_DOWN "all_windows_down"
-#define CMD_LABEL_SUNROOF_OPEN     "sunroof_open"
-#define CMD_LABEL_SUNROOF_CLOSE    "sunroof_close"
-#define CMD_LABEL_SUNROOF_TILT     "sunroof_tilt"
-#define CMD_LABEL_TRUNK_OPEN       "trunk_open"
-#define CMD_LABEL_TRUNK_LOCK       "trunk_lock"
-#define CMD_LABEL_MIRROR_FOLD      "mirror_fold"
-#define CMD_LABEL_MIRROR_UNFOLD    "mirror_unfold"
-#define CMD_LABEL_ALARM_ARM        "alarm_arm"
-#define CMD_LABEL_ALARM_DISARM     "alarm_disarm"
-// For a custom label, the user enters a free-form string that is stored
-// directly as the label (no special prefix required).
-
-
-static inline CommandActuatorClass ctSuggestedActuatorClassForStandardLabel(const char* label) {
-    if (!label) return COMMAND_ACTUATOR_UNKNOWN;
-    if (!strncmp(label, "window_", 7) || !strncmp(label, "all_windows_", 12)) return COMMAND_ACTUATOR_WINDOW;
-    if (!strncmp(label, "sunroof_", 8)) return COMMAND_ACTUATOR_SUNROOF;
-    if (!strncmp(label, "mirror_", 7)) return COMMAND_ACTUATOR_MIRROR;
-    if (!strcmp(label, "lock_all") || !strcmp(label, "unlock_all") || !strcmp(label, "unlock_driver") ||
-        !strcmp(label, "trunk_open") || !strcmp(label, "trunk_lock") || !strcmp(label, "alarm_arm") || !strcmp(label, "alarm_disarm")) return COMMAND_ACTUATOR_NONE;
-    return COMMAND_ACTUATOR_UNKNOWN;
-}
+#include "ct_command_actuator.h"
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ A single learned/manual command
