@@ -97,6 +97,8 @@ bool Buttons::_save() {
 }
 
 bool Buttons::setOff() {
+    if (!ctSync().lockWrite()) return false;
+    struct Unlock { ~Unlock(){ ctSync().unlockWrite(); } } unlock;
     const Mode old = _mode;
     _mode = OFF;
     if (!_save()) { _mode = old; return false; }
@@ -105,6 +107,8 @@ bool Buttons::setOff() {
 }
 
 bool Buttons::setGpioPins(const int pins[5]) {
+    if (!ctSync().lockWrite()) return false;
+    struct Unlock { ~Unlock(){ ctSync().unlockWrite(); } } unlock;
     int used[16]; size_t n; inUsePins(used, n);
     for (uint8_t i = 0; i < 5; i++) {
         if (!ctSdCsPinAllowed(pins[i], used, n)) return false;
@@ -124,6 +128,8 @@ bool Buttons::setGpioPins(const int pins[5]) {
 }
 
 bool Buttons::setAdc(int pin, const uint16_t ladder[5]) {
+    if (!ctSync().lockWrite()) return false;
+    struct Unlock { ~Unlock(){ ctSync().unlockWrite(); } } unlock;
     int used[16]; size_t n; inUsePins(used, n);
     if (!ctAdcPinAllowed(pin, used, n) || !ctLadderValid(ladder, ADC_TOL)) return false;
     const int8_t oldPin = _adcPin; uint16_t oldLad[5]; memcpy(oldLad, _ladder, sizeof(oldLad));
@@ -135,6 +141,8 @@ bool Buttons::setAdc(int pin, const uint16_t ladder[5]) {
 }
 
 bool Buttons::resetToDefaults() {
+    if (!ctSync().lockWrite()) return false;
+    struct Unlock { ~Unlock(){ ctSync().unlockWrite(); } } unlock;
     const Mode oldMode = _mode;
     int8_t oldPins[5];
     const int8_t oldAdcPin = _adcPin;

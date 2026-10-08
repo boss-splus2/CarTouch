@@ -209,32 +209,6 @@ void WiFiManager::disconnect() {
 // □□□□□□□□□□ Network scan
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
-uint8_t WiFiManager::scanNetworks(char networks[][32], uint8_t maxCount) {
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-    delay(100);
-
-    int count = WiFi.scanNetworks();
-    if (count < 0) {
-        Serial.println("[WiFi] Scan failed");
-        return 0;
-    }
-
-    Serial.printf("[WiFi] Found %d networks\n", count);
-
-    uint8_t result = 0;
-    for (int i = 0; i < count && result < maxCount; i++) {
-        String ssid = WiFi.SSID(i);
-        if (ssid.length() > 0) {
-            strncpy(networks[result], ssid.c_str(), 32);
-            networks[result][31] = '\0';
-            Serial.printf("  %d: %s\n", result + 1, networks[result]);
-            result++;
-        }
-    }
-
-    return result;
-}
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ Status accessors

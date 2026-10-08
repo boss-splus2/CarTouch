@@ -60,6 +60,7 @@ public:
      * flow (TFT verify screen / webserver "verify_command" handler).
      */
     bool executeCommandForVerification(const char* commandLabel, String& outErrorReason);
+    bool executeCommandForVerification(uint8_t profileIndex, const char* commandLabel, String& outErrorReason);
 
     // -- Doors --------------------------------------------------------------------
     bool lockAllDoors();
@@ -154,14 +155,13 @@ private:
     void _recordDutyCycle(ActuatorClass cls);
     ActuatorDutyState* _dutyStateFor(ActuatorClass cls);
 
-    // Classifies a command label by string prefix (window_/sunroof_/mirror_).
-    // NOTE: a free-text custom label from Learn Mode that doesn't use these
-    // prefixes will not be classified, and will only get the base rate
-    // limit above - not the duty-cycle limit.
+    // Legacy convenience classification used only for built-in UI labels.
+    // Custom learned/manual commands use persisted actuator metadata.
     static ActuatorClass _classifyLabel(const char* label);
 
     bool _sendResolvedMessage(const CanMessage& msg);
-    bool _execute(const char* label, String& outErrorReason, bool forVerification = false);
+    bool _execute(const char* label, String& outErrorReason, bool forVerification = false, int8_t explicitActuatorClass = -1);
+    bool _executeForProfile(uint8_t profileIndex, const char* label, String& outErrorReason);
 };
 
 #endif    // VEHICLE_CONTROL_H

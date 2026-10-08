@@ -48,6 +48,14 @@ enum CommandStatus : uint8_t {
 // ○○○○○○○○○○ Command source
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
+enum CommandActuatorClass : uint8_t {
+    COMMAND_ACTUATOR_UNKNOWN = 0, // Legacy/unspecified: execution is fail-safe blocked
+    COMMAND_ACTUATOR_NONE    = 1, // Non-motor command (lock/alarm/trunk/etc.)
+    COMMAND_ACTUATOR_WINDOW  = 2,
+    COMMAND_ACTUATOR_SUNROOF = 3,
+    COMMAND_ACTUATOR_MIRROR  = 4
+};
+
 enum CommandSource : uint8_t {
     SOURCE_DBC     = 0,    // From a DBC file (vehicle_db) - a write signal (rare in practice)
     SOURCE_LEARNED = 1,    // Captured via Learn Mode from a real physical button press
@@ -84,6 +92,17 @@ enum CommandSource : uint8_t {
 // For a custom label, the user enters a free-form string that is stored
 // directly as the label (no special prefix required).
 
+
+static inline CommandActuatorClass ctSuggestedActuatorClassForStandardLabel(const char* label) {
+    if (!label) return COMMAND_ACTUATOR_UNKNOWN;
+    if (!strncmp(label, "window_", 7) || !strncmp(label, "all_windows_", 12)) return COMMAND_ACTUATOR_WINDOW;
+    if (!strncmp(label, "sunroof_", 8)) return COMMAND_ACTUATOR_SUNROOF;
+    if (!strncmp(label, "mirror_", 7)) return COMMAND_ACTUATOR_MIRROR;
+    if (!strcmp(label, "lock_all") || !strcmp(label, "unlock_all") || !strcmp(label, "unlock_driver") ||
+        !strcmp(label, "trunk_open") || !strcmp(label, "trunk_lock") || !strcmp(label, "alarm_arm") || !strcmp(label, "alarm_disarm")) return COMMAND_ACTUATOR_NONE;
+    return COMMAND_ACTUATOR_UNKNOWN;
+}
+
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ A single learned/manual command
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -99,6 +118,7 @@ struct LearnedCommand {
 
     CommandSource source = SOURCE_MANUAL;
     CommandStatus status = CMD_UNVERIFIED;
+    CommandActuatorClass actuatorClass = COMMAND_ACTUATOR_UNKNOWN;
 
     uint8_t  timesObserved = 0;          // Times seen during capture (Learned only)
     uint8_t  failCount        = 0;       // Failed verification attempts

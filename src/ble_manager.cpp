@@ -4,6 +4,7 @@
 #include <Update.h>
 #include "ct_password.h"
 #include "ct_ota_header.h"
+#include "ct_ota_lock.h"
 #include "ct_sha256.h"
 #include "ct_index_parser.h"
 #include "sd_storage.h"
@@ -417,7 +418,7 @@ void BLEManager::_handleCommand(const String& command, uint16_t connHandle) {
 bool BLEManager::_startOta(uint32_t size, const String& password,
                            const String& expectedSha256,
                            uint16_t connHandle) {
-    if (_otaInProgress && _otaConnHandle != connHandle) {
+    if (!ctOtaLock().tryAcquire(CT_OTA_OWNER_BLE)) {
         _otaError = true;
         return false;
     }
@@ -430,10 +431,12 @@ bool BLEManager::_startOta(uint32_t size, const String& password,
     const AppConfig* cfg = getConfig();
     if (isUsingDefaultPassword()) {    // never allow OTA with the public default
         _otaError = true;
+        ctOtaLock().release(CT_OTA_OWNER_BLE);
         return false;
     }
     if (ctLoginLocked(_authLock, millis())) {
         _otaError = true;    // locked out after repeated failures
+        ctOtaLock().release(CT_OTA_OWNER_BLE);
         return false;
     }
     {
@@ -445,19 +448,23 @@ bool BLEManager::_startOta(uint32_t size, const String& password,
         if (diff != 0) {
             _otaError = true;
             ctLoginFailed(_authLock, millis());
+            ctOtaLock().release(CT_OTA_OWNER_BLE);
             return false;
         }
         ctLoginSucceeded(_authLock);
     }
 
     if (_otaInProgress || Update.isRunning()) {
-        _abortOta();
+        _otaError = true;
+        ctOtaLock().release(CT_OTA_OWNER_BLE);
+        return false;
     }
 
     gOtaHeader.reset();
     if (!Update.begin(size, U_FLASH)) {
         _otaError = true;
         Serial.printf("[BLE OTA] Update.begin failed: %s\n", Update.errorString());
+        ctOtaLock().release(CT_OTA_OWNER_BLE);
         return false;
     }
 
@@ -483,6 +490,7 @@ void BLEManager::_abortOta() {
     _otaExpected = 0;
     _otaReceived = 0;
     _otaConnHandle = BLE_HS_CONN_HANDLE_NONE;
+    ctOtaLock().release(CT_OTA_OWNER_BLE);
 }
 
 bool BLEManager::_finishOta() {
@@ -521,6 +529,7 @@ bool BLEManager::_finishOta() {
     _otaConnHandle = BLE_HS_CONN_HANDLE_NONE;
     gOtaExpectedSha256[0] = '\0';
     Serial.printf("[BLE OTA] Finished successfully: %u bytes\n", (unsigned)_otaReceived);
+    ctOtaLock().release(CT_OTA_OWNER_BLE);
     return true;
 }
 

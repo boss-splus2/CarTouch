@@ -162,47 +162,18 @@ String CustomVehicleStore::_profilePath(uint8_t index) {
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
 bool CustomVehicleStore::_loadIndex() {
-    if (!SPIFFS.exists(INDEX_FILE_PATH)) {
-        // First run may legitimately have no profile files. If profile files
-        // do exist, however, rebuild the index from the authoritative files
-        // instead of silently hiding recoverable user data.
-        if (_rebuildIndexFromProfiles()) {
-            return true;
-        }
-        Serial.println("[CVS] Index file not found - starting with an empty list");
-        return true;
+    // Profile files are authoritative; index.json is only a derived cache.
+    // Always reconcile the cache against every bounded profile slot at boot so
+    // a stale-but-valid index can never hide or resurrect a profile.
+    for (uint8_t i = 0; i < MAX_CUSTOM_VEHICLES; ++i) {
+        memset(&_summaryCache[i], 0, sizeof(CustomVehicleProfile));
+        _summaryCache[i].id = i;
     }
-
-    File file = SPIFFS.open(INDEX_FILE_PATH, "r");
-    if (!file) {
-        Serial.println("[CVS] Failed to open index file");
-        return false;
+    if (!_rebuildIndexFromProfiles()) {
+        // No profile files is a valid empty store. Remove a stale index rather
+        // than treating it as authoritative.
+        if (SPIFFS.exists(INDEX_FILE_PATH)) SPIFFS.remove(INDEX_FILE_PATH);
     }
-
-    JsonDocument doc;
-    DeserializationError err = deserializeJson(doc, file);
-    file.close();
-
-    if (err) {
-        Serial.printf("[CVS] Failed to parse index: %s - rebuilding from profile files\n", err.c_str());
-        return _rebuildIndexFromProfiles();
-    }
-
-    JsonArray arr = doc["profiles"].as<JsonArray>();
-    for (JsonObject item : arr) {
-        uint8_t idx = item["id"] | 0;
-        if (idx >= MAX_CUSTOM_VEHICLES) continue;
-
-        _summaryCache[idx].id      = idx;
-        _summaryCache[idx].inUse    = true;
-        strncpy(_summaryCache[idx].name,  item["name"]  | "", sizeof(_summaryCache[idx].name) - 1);
-        strncpy(_summaryCache[idx].brand, item["brand"] | "", sizeof(_summaryCache[idx].brand) - 1);
-        strncpy(_summaryCache[idx].model, item["model"] | "", sizeof(_summaryCache[idx].model) - 1);
-        _summaryCache[idx].year            = item["year"] | 0;
-        _summaryCache[idx].revision        = item["revision"] | 0;
-        _summaryCache[idx].commandCount       = item["commandCount"] | 0;
-    }
-
     return true;
 }
 
@@ -334,6 +305,7 @@ void CustomVehicleStore::_profileToJson(const CustomVehicleProfile& profile, Jso
         }
 
         item["source"]           = (int)c.source;
+        item["actuatorClass"]    = (int)c.actuatorClass;
         item["status"]              = (c.status == CMD_VERIFIED) ? "verified" : "unverified";
         item["timesObserved"]           = c.timesObserved;
         item["failCount"]                  = c.failCount;
@@ -520,6 +492,9 @@ bool CustomVehicleStore::_jsonToProfile(JsonDocument& doc, CustomVehicleProfile&
         for (JsonVariant v : dataArr) { if (bi >= 8) break; cc.data[bi++] = v.as<uint8_t>(); }
 
         cc.source = (CommandSource)sourceVal;
+        int actuatorVal = item["actuatorClass"] | (int)COMMAND_ACTUATOR_UNKNOWN;
+        if (actuatorVal < (int)COMMAND_ACTUATOR_UNKNOWN || actuatorVal > (int)COMMAND_ACTUATOR_MIRROR) actuatorVal = (int)COMMAND_ACTUATOR_UNKNOWN;
+        cc.actuatorClass = (CommandActuatorClass)actuatorVal;
         // Imported commands are never trusted as VERIFIED on this device.
         // The status field is validated above only to reject malformed input.
         cc.status = CMD_UNVERIFIED;
@@ -612,13 +587,24 @@ bool CustomVehicleStore::saveProfile(const CustomVehicleProfile& profile) {
     if (nextRevision == 0) nextRevision = 1;
     toSave.revision = nextRevision;
 
+    CustomVehicleProfile previous;
+    const bool hadPrevious = _summaryCache[toSave.id].inUse && loadProfile(toSave.id, previous);
+    CustomVehicleProfile oldSummary = _summaryCache[toSave.id];
     if (!_writeProfileFile(toSave)) return false;
 
-    // Update the summary cache + index
-    _summaryCache[toSave.id]         = toSave;
-    _summaryCache[toSave.id].inUse   = true;
+    // Commit the derived index only after the authoritative profile file is valid.
+    _summaryCache[toSave.id] = toSave;
+    _summaryCache[toSave.id].inUse = true;
+    if (_saveIndex()) return true;
 
-    return _saveIndex();
+    // Roll back both the file and the in-RAM cache if the derived index cannot commit.
+    bool restored = false;
+    if (hadPrevious) restored = _writeProfileFile(previous);
+    else { String path = _profilePath(toSave.id); if (SPIFFS.exists(path)) SPIFFS.remove(path); restored = true; }
+    _summaryCache[toSave.id] = oldSummary;
+    if (!restored) Serial.printf("[CVS] CRITICAL: profile %u changed but rollback failed\n", (unsigned)toSave.id);
+    _saveIndex();
+    return false;
 }
 
 bool CustomVehicleStore::setDbcFileName(uint8_t profileIndex, const char* fileName) {
@@ -691,16 +677,23 @@ bool CustomVehicleStore::createNewProfile(const char* name, const char* brand,
 
 bool CustomVehicleStore::deleteProfile(uint8_t index) {
     if (!_initialized || index >= MAX_CUSTOM_VEHICLES || !_summaryCache[index].inUse) return false;
-
+    CustomVehicleProfile previous;
+    if (!loadProfile(index, previous)) return false;
+    CustomVehicleProfile oldSummary = _summaryCache[index];
     String path = _profilePath(index);
-    if (SPIFFS.exists(path)) {
-        SPIFFS.remove(path);
-    }
-
-    _summaryCache[index].inUse = false;
+    if (SPIFFS.exists(path) && !SPIFFS.remove(path)) return false;
     memset(&_summaryCache[index], 0, sizeof(CustomVehicleProfile));
 
-    return _saveIndex();
+    if (_saveIndex()) return true;
+
+    // Index commit failed: restore the authoritative profile and cache.
+    if (!_writeProfileFile(previous)) {
+        Serial.printf("[CVS] CRITICAL: deleted profile %u could not be restored\n", (unsigned)index);
+        return false;
+    }
+    _summaryCache[index] = oldSummary;
+    _saveIndex();
+    return false;
 }
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■

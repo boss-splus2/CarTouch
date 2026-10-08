@@ -171,6 +171,11 @@ bool ActiveProfileManager::resolveCommand(const char* label, CanMessage& outMsg,
     // has this check, but it's repeated here too, so this class alone
     // (e.g. if called from somewhere else in the future) never returns
     // an unverified command as sendable.
+    if (cmd.actuatorClass == COMMAND_ACTUATOR_UNKNOWN) {
+        outErrorReason = "This command has no actuator safety classification - re-create it before use";
+        return false;
+    }
+
     if (cmd.status != CMD_VERIFIED) {
         outErrorReason = "This command is still UNVERIFIED - "
                          "verify it from My Commands";
@@ -228,6 +233,37 @@ bool ActiveProfileManager::resolveCommandForVerification(const char* label, CanM
     outMsg.length             = cmd.length;
     memcpy(outMsg.data, cmd.data, cmd.length);
 
+    return true;
+}
+
+bool ActiveProfileManager::resolveCommandForVerification(uint8_t profileIndex, const char* label, CanMessage& outMsg, String& outErrorReason) {
+    if (!label || profileIndex >= MAX_CUSTOM_VEHICLES) { outErrorReason = "Invalid verification profile"; return false; }
+    LearnedCommand cmd;
+    if (!_customStore.findCommand(profileIndex, label, cmd)) {
+        outErrorReason = "No command with this label is registered for this vehicle";
+        return false;
+    }
+    if (cmd.status != CMD_UNVERIFIED) { outErrorReason = "This command is already verified"; return false; }
+    if (cmd.actuatorClass == COMMAND_ACTUATOR_UNKNOWN) {
+        outErrorReason = "Command actuator type is unknown; re-create or migrate this command before verification";
+        return false;
+    }
+    if (cmd.length > 8 || !ctTxIdValid(cmd.canId, cmd.isExtended)) {
+        outErrorReason = "Stored command has an invalid CAN ID or length - re-create it";
+        return false;
+    }
+    outMsg.id = cmd.canId; outMsg.isExtended = cmd.isExtended; outMsg.isRemote = false;
+    outMsg.length = cmd.length; memcpy(outMsg.data, cmd.data, cmd.length);
+    return true;
+}
+
+
+bool ActiveProfileManager::getCommandActuatorClass(uint8_t profileIndex, const char* label, CommandActuatorClass& outClass) {
+    outClass = COMMAND_ACTUATOR_UNKNOWN;
+    if (profileIndex >= MAX_CUSTOM_VEHICLES || !label) return false;
+    LearnedCommand cmd;
+    if (!_customStore.findCommand(profileIndex, label, cmd)) return false;
+    outClass = cmd.actuatorClass;
     return true;
 }
 

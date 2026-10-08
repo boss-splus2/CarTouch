@@ -218,12 +218,17 @@ void VehicleControl::_recordDutyCycle(ActuatorClass cls) {
 // □□□□□□□□□□ Label execution
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
-bool VehicleControl::_execute(const char* label, String& outErrorReason, bool forVerification) {
+bool VehicleControl::_execute(const char* label, String& outErrorReason, bool forVerification, int8_t explicitActuatorClass) {
     CtCtrlLock lock(_mutex);
     // Runs before ActiveProfileManager resolution, since the goal is
     // protecting the physical motor regardless of which command is
     // requested.
-    ActuatorClass cls = _classifyLabel(label);
+    ActuatorClass cls = explicitActuatorClass >= 0 ? (ActuatorClass)explicitActuatorClass : _classifyLabel(label);
+    if (forVerification && explicitActuatorClass < 0) {
+        // Legacy active-profile verification path is intentionally conservative.
+        // Profile-specific verification below supplies explicit metadata.
+        cls = ACTUATOR_NONE;
+    }
     if (cls != ACTUATOR_NONE) {
         if (!_checkDutyCycle(cls, outErrorReason)) {
             _lastError = 4;
@@ -279,7 +284,29 @@ bool VehicleControl::executeCommandForVerification(const char* commandLabel, Str
                       commandLabel, outErrorReason.c_str());
     }
     return result;
+}bool VehicleControl::executeCommandForVerification(uint8_t profileIndex, const char* commandLabel, String& outErrorReason) {
+    CtCtrlLock lock(_mutex);
+    CommandActuatorClass meta = COMMAND_ACTUATOR_UNKNOWN;
+    if (!_profileManager.getCommandActuatorClass(profileIndex, commandLabel, meta) ||
+        meta == COMMAND_ACTUATOR_UNKNOWN) {
+        outErrorReason = "Command actuator type is unknown; re-create this command before verification";
+        return false;
+    }
+    CanMessage msg;
+    if (!_profileManager.resolveCommandForVerification(profileIndex, commandLabel, msg, outErrorReason)) return false;
+    ActuatorClass cls = ACTUATOR_NONE;
+    switch (meta) {
+        case COMMAND_ACTUATOR_WINDOW: cls = ACTUATOR_WINDOW; break;
+        case COMMAND_ACTUATOR_SUNROOF: cls = ACTUATOR_SUNROOF; break;
+        case COMMAND_ACTUATOR_MIRROR: cls = ACTUATOR_MIRROR; break;
+        default: cls = ACTUATOR_NONE; break;
+    }
+    if (cls != ACTUATOR_NONE && !_checkDutyCycle(cls, outErrorReason)) return false;
+    bool sent = _sendResolvedMessage(msg);
+    if (sent && cls != ACTUATOR_NONE) _recordDutyCycle(cls);
+    return sent;
 }
+
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ Convenience wrappers

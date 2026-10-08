@@ -22,6 +22,7 @@
 #include <Update.h>
 #include "ct_password.h"
 #include "ct_ota_header.h"
+#include "ct_ota_lock.h"
 #include "ct_sha256.h"
 
 #include "ct_hex_parser.h"
@@ -1213,7 +1214,8 @@ void WebServerManager::_registerCustomVehicleRoutes() {
 
     // POST /api/vehicles/custom/manual-add - add a manual command (see CarTouch_SPEC.md)
     // Form body: profileId, label, displayName, canId (hex string like "1A0"),
-    //            extended ("1"/"0"), dataHex (e.g. "01 FF 00")
+    //            extended ("1"/"0"), dataHex (e.g. "01 FF 00"),
+    //            optional actuatorClass: 1=none, 2=window, 3=sunroof, 4=mirror
     _server.on("/api/vehicles/custom/manual-add", HTTP_POST, [this](AsyncWebServerRequest* request) {
         if (!_authenticate(request)) {
             // _authenticate() already sent the 401/429 response itself
@@ -1276,6 +1278,20 @@ void WebServerManager::_registerCustomVehicleRoutes() {
         cmd.canId          = canId;
         cmd.isExtended       = extended;
         cmd.source              = SOURCE_MANUAL;
+        if (request->hasArg("actuatorClass")) {
+            int av = request->arg("actuatorClass").toInt();
+            if (av < (int)COMMAND_ACTUATOR_NONE || av > (int)COMMAND_ACTUATOR_MIRROR) {
+                request->send(400, "application/json", "{\"error\":\"Invalid actuatorClass\"}");
+                return;
+            }
+            cmd.actuatorClass = (CommandActuatorClass)av;
+        } else {
+            cmd.actuatorClass = ctSuggestedActuatorClassForStandardLabel(cmd.label);
+            if (cmd.actuatorClass == COMMAND_ACTUATOR_UNKNOWN) {
+                request->send(400, "application/json", "{\"error\":\"actuatorClass is required for custom labels\"}");
+                return;
+            }
+        }
         cmd.status                 = CMD_UNVERIFIED;                                   // Always starts unverified
         cmd.timesObserved             = 0;
         cmd.failCount                    = 0;
@@ -1564,12 +1580,15 @@ static CtOtaHeaderCheck gOtaHeader;    // one upload at a time
 
 void WebServerManager::_handleOtaUpload(AsyncWebServerRequest* request, const String& filename,
                                         size_t index, uint8_t* data, size_t len, bool final) {
-    AppConfig* cfg = getConfig();
-    // Nothing is written to flash without authentication (the 401
-    // response itself is sent from _handleOtaFinished)
-    if (!request->authenticate(cfg->webUser, cfg->webPass)) return;
+    // Use the same central authentication, lockout and session policy as every
+    // other authenticated endpoint. Do not bypass it with raw Basic Auth.
+    if (!_authenticate(request)) return;
 
     if (index == 0) {
+        if (!ctOtaLock().tryAcquire(CT_OTA_OWNER_WEB)) {
+            _otaError = "Another OTA transaction is already in progress";
+            return;
+        }
         _otaError = "";
         _otaBytes = 0;
         gOtaHeader.reset();
@@ -1619,11 +1638,12 @@ void WebServerManager::_handleOtaUpload(AsyncWebServerRequest* request, const St
             }
         }
 
-        if (Update.isRunning()) Update.abort();
+        if (Update.isRunning()) { _otaError = "Another update transaction is active"; ctOtaLock().release(CT_OTA_OWNER_WEB); return; }
         if (_otaIsFs) SPIFFS.end();                // Before writing to the filesystem partition
 
         if (!Update.begin(UPDATE_SIZE_UNKNOWN, _otaIsFs ? U_SPIFFS : U_FLASH)) {
             _otaError = String("Failed to start update: ") + Update.errorString();
+            ctOtaLock().release(CT_OTA_OWNER_WEB);
             return;
         }
         Serial.printf("[OTA] Starting: %s (%s)\n", filename.c_str(), _otaIsFs ? "filesystem" : "firmware");
@@ -1672,6 +1692,7 @@ void WebServerManager::_handleOtaUpload(AsyncWebServerRequest* request, const St
         } else {
             Serial.printf("[OTA] Finished successfully: %u bytes\n", (unsigned)_otaBytes);
         }
+        ctOtaLock().release(CT_OTA_OWNER_WEB);
     }
 }
 
@@ -1710,6 +1731,7 @@ void WebServerManager::_handleOtaFinished(AsyncWebServerRequest* request) {
     _otaError = "";
     _otaBytes = 0;
     gOtaExpectedSha256[0] = '\0';
+    ctOtaLock().release(CT_OTA_OWNER_WEB);
 }
 
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
@@ -1887,6 +1909,7 @@ void WebServerManager::_handleLearnModeMessage(AsyncWebSocketClient* client, Jso
         cmd.length              = candidate.length;
         memcpy(cmd.data, candidate.data, candidate.length);
         cmd.source                 = SOURCE_LEARNED;
+        cmd.actuatorClass         = ctSuggestedActuatorClassForStandardLabel(cmd.label);
         cmd.status                    = CMD_UNVERIFIED;                                                  // Always starts unverified
         cmd.timesObserved                = candidate.seenCountInAction;
         cmd.failCount                       = 0;
@@ -1934,12 +1957,8 @@ void WebServerManager::_handleLearnModeMessage(AsyncWebSocketClient* client, Jso
         // Listen-Only checks as any other command, via the dedicated
         // verification entry point. Never continue with the previously
         // active profile if the requested profile cannot be selected.
-        if (!_profileManager->selectCustomVehicle(profileId)) {
-            client->printf("{\"type\":\"verify_error\",\"message\":\"Profile selection failed\"}");
-            return;
-        }
         String errReason;
-        bool sent = _vehicleControl->executeCommandForVerification(label, errReason);
+        bool sent = _vehicleControl->executeCommandForVerification(profileId, label, errReason);
 
         // Open a verification transaction ONLY for a send that actually
         // happened. verify_confirm is then required to present this

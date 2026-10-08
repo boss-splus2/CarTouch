@@ -1061,6 +1061,7 @@ void TFT_UI::_saveLearnedCommand() {
     cmd.length        = candidate.length;
     memcpy(cmd.data, candidate.data, candidate.length);
     cmd.source        = SOURCE_LEARNED;
+    cmd.actuatorClass = ctSuggestedActuatorClassForStandardLabel(cmd.label);
     cmd.status        = CMD_UNVERIFIED;                                                              // Always starts unverified
     cmd.timesObserved = candidate.seenCountInAction;
     cmd.failCount     = 0;
@@ -1214,6 +1215,7 @@ void TFT_UI::_submitManualEntry() {
     cmd.canId         = canId;
     cmd.isExtended    = extended;
     cmd.source        = SOURCE_MANUAL;
+    cmd.actuatorClass = ctSuggestedActuatorClassForStandardLabel(cmd.label);
     cmd.status        = CMD_UNVERIFIED;                                                               // Manual entries also always start unverified
     cmd.timesObserved = 0;
     cmd.failCount     = 0;
@@ -1355,12 +1357,8 @@ void TFT_UI::_onVerifySendPressed() {
     // executeCommandForVerification() is the only entry point that lets
     // an UNVERIFIED command through; the normal control-tab dispatch
     // (executeCommand()) still rejects it.
-    if (!_profileManager->selectCustomVehicle((uint8_t)_verifyProfileId)) {
-        lv_label_set_text(_verifyResultLabel, "Profile selection failed");
-        return;
-    }
     String errReason;
-    bool sent = _vehicleControl->executeCommandForVerification(_verifyLabel, errReason);
+    bool sent = _vehicleControl->executeCommandForVerification((uint8_t)_verifyProfileId, _verifyLabel, errReason);
 
     if (sent) {
         lv_label_set_text(_verifyResultLabel, "Command sent. Did the vehicle respond correctly?");

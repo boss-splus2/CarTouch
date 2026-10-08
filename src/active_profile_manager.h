@@ -88,6 +88,8 @@ public:
      * must keep using resolveCommand().
      */
     bool resolveCommandForVerification(const char* label, CanMessage& outMsg, String& outErrorReason);
+    bool resolveCommandForVerification(uint8_t profileIndex, const char* label, CanMessage& outMsg, String& outErrorReason);
+    bool getCommandActuatorClass(uint8_t profileIndex, const char* label, CommandActuatorClass& outClass);
 
     /** Display name of the currently active vehicle (for UI display). */
     void getActiveVehicleName(char* outBuf, size_t maxLen);

@@ -44,13 +44,6 @@ public:
 
     void disconnect();
 
-    /**
-     * Scans for available networks.
-     * @param networks [out] array to store SSIDs
-     * @param maxCount  max entries to return
-     * @return number of networks found
-     */
-    uint8_t scanNetworks(char networks[][32], uint8_t maxCount = 10);
 
     /**
      * Asks the device to join a router. Non-blocking: the attempt runs from

@@ -74,6 +74,8 @@ uint64_t SdStorage::freeBytes() const {
 }
 
 bool SdStorage::setCsPin(int pin) {
+    if (!ctSync().lockWrite()) return false;
+    struct Unlock { ~Unlock(){ ctSync().unlockWrite(); } } unlock;
     if (pin >= 0) {
         const AppConfig* c = getConfig();
         const int inUse[] = { PIN_TFT_CS, PIN_TFT_DC, PIN_TFT_RST, PIN_TFT_MOSI, PIN_TFT_SCLK,

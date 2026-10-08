@@ -17,6 +17,7 @@
 #include <Arduino.h>
 #include <vector>
 #include "config.h"
+#include "ct_dbc_store.h"
 
 // -- Sizing ---------------------------------------------------------------------
 //
@@ -24,7 +25,7 @@
 // vector of signals. This avoids silently dropping signals from real-world DBCs
 // that contain more than the old fixed 24-signal limit. The message table is
 // large enough for the bundled direct-menu profiles (including BMW E9x/E8x).
-#define MAX_DBC_MESSAGES 400
+#define MAX_DBC_MESSAGES CT_DBC_MAX_MESSAGES
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ DBC data types
