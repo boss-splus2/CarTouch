@@ -12,13 +12,15 @@
 
 struct CtLoginLock {
     uint8_t  fails = 0;
-    uint32_t lockUntil = 0;    // 0 = not locked
+    uint32_t lockUntil = 0;
+    bool     locked    = false;
 };
 
 // true while locked out. An expired lock is cleared here.
 static inline bool ctLoginLocked(CtLoginLock& l, uint32_t nowMs) {
-    if (l.lockUntil == 0) return false;
+    if (!l.locked) return false;
     if ((int32_t)(nowMs - l.lockUntil) < 0) return true;
+    l.locked = false;
     l.lockUntil = 0;
     l.fails = 0;
     return false;
@@ -28,13 +30,13 @@ static inline void ctLoginFailed(CtLoginLock& l, uint32_t nowMs) {
     if (++l.fails >= CT_LOGIN_MAX_FAILS) {
         l.fails = 0;
         l.lockUntil = nowMs + CT_LOGIN_LOCK_MS;
-        // cppcheck-suppress knownConditionTrueFalse -- millis() wrap can produce 0.
-        if (l.lockUntil == 0) l.lockUntil = 1;    // 0 means "not locked"
+        l.locked = true;
     }
 }
 
 static inline void ctLoginSucceeded(CtLoginLock& l) {
     l.fails = 0;
+    l.locked = false;
     l.lockUntil = 0;
 }
 
