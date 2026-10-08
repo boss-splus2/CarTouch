@@ -1,32 +1,50 @@
-# CarTouch Root-Level Repair Report
+# CarTouch — Unified Root Repair and Documentation Sync Report
 
-This tree is a unified repair, not a CI-only patch.
+این نسخه یک اصلاح یکپارچه است؛ هیچ Stage جداگانه‌ای بخشی از روش انتشار این نسخه نیست.
 
-## Fixed in code
-- Removed the duplicate production-side `src/test_main.cpp`; Native tests remain under `test/test_native/`.
-- Added explicit persisted actuator metadata to learned/manual commands. Unknown legacy/custom actuator types fail closed instead of silently bypassing duty-cycle protection.
-- Added profile-specific verification execution so Web/TFT verification does not switch the global active vehicle.
-- Added transactional rollback around custom-profile/index commits and deletes.
-- Treat `index.json` as a derived cache and reconcile it from authoritative profile files at boot.
-- Added real SD/Button configuration transactions using the existing recursive sync mutex.
-- Added a single DBC message-limit source (`CT_DBC_MAX_MESSAGES`) and updated the CI checker to resolve the alias.
-- Removed the unused Wi-Fi network-scan API.
-- Added a shared OTA ownership lock preventing Web and BLE from aborting/starting each other's firmware update transaction.
-- Routed Web OTA authentication through the central Web authentication/lockout path.
-- Kept CAN TX path checks intact; they were not weakened.
-- Moved the two previously misplaced Native tests into the canonical Native test file.
+## اصلاحات کد
 
-## Compatibility/safety behavior
-- Existing commands without actuator metadata are intentionally treated as unknown and are not executable. This is fail-safe; they must be re-created/re-learned (or explicitly migrated with trusted metadata).
-- Built-in DBC command behavior is unchanged: no guessed write mapping is introduced.
-- Default credentials and hardware pin mappings were not changed.
+- حذف `src/test_main.cpp` تکراری و نگه‌داشتن Native tests در `test/test_native/`.
+- افزودن `actuatorClass` صریح به فرمان‌های learned/manual و fail-closed کردن `UNKNOWN`.
+- verification پروفایل‌محور برای Web/TFT بدون تغییر active vehicle سراسری.
+- transaction/rollback برای profile و index؛ `index.json` فقط cache مشتق‌شده است.
+- lock مشترک `ctSync()` برای تنظیمات SD و Button.
+- یک منبع واحد برای سقف DBC و حفظ checker مسیرهای CAN TX.
+- حذف API بدون مصرف `WiFiManager::scanNetworks()`.
+- افزودن `CtOtaLock` برای مالکیت مشترک OTA بین Web و BLE.
+- استفاده Web OTA از authentication/lockout مرکزی.
 
-## Validation actually run in this environment
-- `python3 scripts/check_tx_paths.py src` — PASS.
-- `python3 scripts/check_dbc_limits.py .` — PASS.
-- `python3 scripts/audit_dbc.py --check` — PASS for 57 DBC files.
-- Python scripts compile with `py_compile`.
-- Source brace/static structural checks passed.
+## همگام‌سازی مستندات
 
-## Not claimed
-A full PlatformIO firmware/native build was not executed because the available environment does not contain the PlatformIO toolchain/dependencies. Hardware CAN, SPI, TFT, SD, BLE and OTA behavior therefore still require real-device/CI validation.
+فایل‌های زیر با کد فعلی بازبینی/به‌روزرسانی شده‌اند:
+
+- `README.md`
+- `README.en.md`
+- `CarTouch_SPEC.md`
+- `BLE_OTA.md`
+- `docs/OTA.md`
+- `docs/SECURITY.md`
+- `ROOT_ARCHITECTURE_REPAIR_REPORT.md`
+
+مستندات موجود `docs/FLASHING.md`, `docs/MEMORY.md`, `DBC_AUDIT.md` و `THIRD_PARTY_NOTICES.md` حفظ شده‌اند و در README/SPEC به آن‌ها ارجاع داده می‌شود.
+
+مستندات اکنون صریحاً موارد حل‌نشده را نیز ثبت می‌کنند، از جمله:
+
+- timeout/watchdog خودکار برای OTA Web در قطع غیرعادی کلاینت؛
+- نبود `OtaManager` کامل و استفاده مستقیم Web/BLE از `Update` در کنار ownership lock؛
+- نبود migration کامل schema برای blob قدیمی `AppConfig`؛
+- نبود credential epoch مستقل؛
+- نبود storage coordinator واحد برای همه‌ی storage transactionها؛
+- refactor کامل `webserver.cpp` و `main.cpp` هنوز انجام نشده است.
+
+## Validation
+
+- `python3 -m py_compile scripts/*.py` — PASS
+- `python3 scripts/check_tx_paths.py src` — PASS
+- `python3 scripts/check_dbc_limits.py .` — PASS
+- `python3 scripts/audit_dbc.py --check` — PASS؛ 57 DBC files
+- ZIP integrity check — باید پس از بسته‌بندی نهایی اجرا شود.
+
+## محدودیت اعتبارسنجی
+
+PlatformIO در محیط فعلی موجود نیست؛ بنابراین full firmware build/native PlatformIO test و تست سخت‌افزار واقعی را ادعا نمی‌کنیم. رفتار CAN، TFT/touch، SD، Wi-Fi/BLE، OTA و خودرو باید در CI/برد واقعی تأیید شوند.

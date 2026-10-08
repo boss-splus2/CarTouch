@@ -32,6 +32,16 @@
 - BLE uses Just Works / LE Secure Connections without MITM. Control and OTA commands require AUTH; `STATUS` is intentionally public.
 - Flash Encryption and Secure Boot are not enabled by this project configuration.
 
+## Current architecture repairs
+
+- Web and BLE share an OTA ownership lock; neither can abort the other interface's firmware transaction. A watchdog timeout for an abnormal Web disconnect is still a known follow-up item.
+- Verification uses an explicit profile index and does not switch the global active vehicle.
+- Learned/manual commands carry explicit actuator metadata; unknown actuator types fail closed.
+- Custom profile files are authoritative; `index.json` is rebuilt as a derived cache and profile/index writes attempt rollback on commit failure.
+- SD and five-way configuration updates use the shared synchronization mutex.
+
+These are source-level architectural repairs, not evidence of vehicle testing.
+
 ## CI artifacts
 
 The GitHub Actions workflow produces one artifact named `cartouch-firmware` with one directory per profile. Firmware and filesystem images have `.sha256` files. The `esp32-s3-headless` profile intentionally has no `spiffs.bin`; use a profile with a filesystem for the Web UI.

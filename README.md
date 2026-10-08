@@ -532,6 +532,20 @@ flowchart RL
 - **خودروهای تست‌نشده:** همه‌ی مدل‌ها/سال‌هایی که نام آن‌ها در پروژه آمده‌اند تا زمان ثبت آزمون واقعی، تست‌نشده محسوب می‌شوند.
 - build و native test به‌تنهایی جایگزین تست کنترل‌شده روی برد و خودرو نیستند.
 
+<h2 dir="rtl" id="-اصلاحات-معماری-نسخه-فعلی">🧩 اصلاحات معماری نسخه فعلی</h2>
+
+در نسخه فعلی، چند مسیر حساس یکپارچه شده‌اند تا رفتار ایمن فقط به CI وابسته نباشد:
+
+- **OTA ownership:** Web و BLE برای هر لحظه فقط یکی می‌تواند مالک عملیات firmware OTA باشد؛ مسیر دوم نمی‌تواند OTA متعلق به رابط دیگر را abort یا هم‌زمان شروع کند. این مالکیت یک قفل مشترک در `ct_ota_lock.*` است. **Timeout خودکار برای قطع ناگهانی کلاینت Web هنوز پیاده‌سازی نشده** و در صورت قطع غیرعادی قبل از release باید با timeout/cleanup سخت‌گیرانه‌تر تکمیل شود.
+- **Verification isolation:** تأیید فرمان سفارشی از Web/TFT با `profileIndex` صریح انجام می‌شود و برای verification، پروفایل فعال سراسری عوض نمی‌شود.
+- **Actuator metadata:** هر فرمان learned/manual دارای `actuatorClass` صریح است. مقدار `UNKNOWN` برای فرمان‌های قدیمی یا برچسب‌های سفارشی قابل اجرا نیست؛ نوع محرک از روی متن دلخواه حدس زده نمی‌شود.
+- **Custom profile storage:** فایل profile منبع اصلی است و `index.json` فقط cache مشتق‌شده است. تغییرات profile و index با rollback تلاش می‌کنند از حالت نیمه‌نوشته جلوگیری کنند.
+- **Synchronization:** تغییر تنظیمات SD و Five-way Button از mutex مشترک `ct_sync` عبور می‌کند تا read/validate/write هم‌زمان با مسیرهای دیگر تداخل نداشته باشد.
+- **CAN safety checks:** بررسی مسیرهای TX همچنان سخت‌گیرانه است و checker مربوط به `scripts/check_tx_paths.py` تضعیف نشده است.
+
+> [!IMPORTANT]
+> این اصلاحات معماری به معنی «تست‌شده روی خودرو» نیستند. PlatformIO build کامل و آزمون سخت‌افزار واقعی باید در CI/برد انجام شوند؛ محیط فعلی این toolchain را در اختیار نداشت.
+
 <h2 dir="rtl" id="-عیبیابی">🛠️ عیب‌یابی کوتاه</h2>
 
 | مشکل | بررسی‌های اول |
@@ -627,8 +641,8 @@ CarTouch/
 <td align="center">اندازه‌گیری heap/PSRAM/stack</td>
 </tr>
 <tr>
-<td align="center"><code>docs/OTA.md</code></td>
-<td align="center">جزئیات OTA و SHA-256</td>
+<td align="center"><a href="./docs/OTA.md"><code>docs/OTA.md</code></a></td>
+<td align="center">جزئیات OTA، SHA-256، مالکیت مشترک Web/BLE و محدودیت‌های rollback</td>
 </tr>
 <tr>
 <td align="center"><a href="./THIRD_PARTY_NOTICES.md"><code>THIRD_PARTY_NOTICES.md</code></a></td>

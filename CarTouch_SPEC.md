@@ -568,3 +568,40 @@ Workflow فعلی این مراحل را اجرا می‌کند:
 ## 22. وضعیت DBC و مسئولیت انتشار
 
 `data/dbc/*.dbc` در این اصلاحات تغییر داده نمی‌شود. منشأ/مجوز همه‌ی DBCهای موجود در مخزن عمومی هنوز نیازمند تأیید کامل است؛ پیش از تجاری‌سازی یا اشتراک‌گذاری دستگاه باید این بررسی تکمیل شود.
+
+
+## 23. اصلاحات ریشه‌ای نسخه فعلی
+
+این بخش وضعیت معماری پس از آخرین اصلاح یکپارچه را ثبت می‌کند و بر بخش‌های قدیمی‌تر همین سند اولویت توضیحی دارد.
+
+### 23.1 مالکیت OTA
+
+Web و BLE از `CtOtaLock` مشترک استفاده می‌کنند. مالکیت یکی از `NONE`, `WEB`, `BLE` است و شروع/پایان/خطای OTA باید با همان owner انجام شود. یک رابط نمی‌تواند عملیات رابط دیگر را abort کند. احراز هویت Web OTA از مسیر مرکزی Web authentication/lockout عبور می‌کند.
+
+**محدودیت باقی‌مانده:** در صورت قطع غیرعادی Web client پیش از finalize، timeout مستقل برای آزادسازی مالکیت هنوز وجود ندارد و باید در یک اصلاح بعدی به‌صورت watchdog/cleanup تکمیل شود. بنابراین «قفل مشترک» پیاده شده است، اما lifecycle کامل OTA هنوز صددرصد self-healing نیست.
+
+### 23.2 Verification و Active Vehicle
+
+Web و TFT برای verification از API پروفایل-محور استفاده می‌کنند (`executeCommandForVerification` / `resolveCommandForVerification`). این مسیر برای اجرای آزمایشی فرمان، `profileIndex` و label را مستقیماً مشخص می‌کند و برای verification، active vehicle سراسری را تغییر نمی‌دهد.
+
+### 23.3 Actuator metadata و duty-cycle
+
+`LearnedCommand.actuatorClass` بخشی از قرارداد ذخیره‌سازی profile است. کلاس‌های شناخته‌شده شامل `NONE`, `WINDOW`, `SUNROOF`, `MIRROR` و `UNKNOWN` هستند. برای labelهای استاندارد فقط یک پیشنهاد metadata ممکن است ساخته شود؛ label سفارشی بدون metadata صریح، `UNKNOWN` می‌ماند. `UNKNOWN` fail-closed است و نمی‌تواند به مسیر اجرای/verification فرمان وارد شود.
+
+### 23.4 یکپارچگی CustomVehicleStore
+
+profile file منبع authoritative است و `index.json` cache مشتق‌شده محسوب می‌شود. `saveProfile` و `deleteProfile` در صورت شکست commit index تلاش به rollback profile/cache می‌کنند. هنگام load نیز index معتبر اما stale نمی‌تواند profile واقعی را پنهان یا resurrect کند؛ index از profile files دوباره ساخته می‌شود.
+
+### 23.5 همگام‌سازی تنظیمات
+
+تغییرات `SdStorage` و `Buttons` در مسیرهای تنظیمات مربوطه lock مشترک `ctSync()` را می‌گیرند و با RAII آزاد می‌کنند. این کار برای کاهش race در read/validate/write انجام شده است؛ قفل‌کردن همه‌ی stateهای runtime پروژه به یک transaction coordinator واحد هنوز انجام نشده است.
+
+### 23.6 موارد عمداً انجام‌نشده
+
+- `OtaManager` کامل و واحد هنوز جایگزین استفاده مستقیم Web/BLE از `Update` نشده است؛ فعلاً ownership lock مشترک پیاده شده است.
+- schema-version/migration کامل برای blob قدیمی `AppConfig` هنوز وجود ندارد.
+- credential epoch مشترک مستقل از password lifecycle هنوز ایجاد نشده است.
+- شکستن کامل `webserver.cpp` و `main.cpp` به domainهای کوچک‌تر هنوز انجام نشده است.
+- storage coordinator واحد برای همه‌ی filesystem/SD transactions هنوز وجود ندارد.
+
+این موارد نباید در README یا release notes به‌عنوان «حل‌شده» معرفی شوند.
