@@ -8,15 +8,17 @@
 ![CAN Bus](https://img.shields.io/badge/CAN-Dual%20Bus-orange)
 ![LVGL](https://img.shields.io/badge/LVGL-8.4-purple)
 ![License](https://img.shields.io/badge/License-Proprietary-lightgrey)
+[![CI](https://github.com/boss-splus2/CarTouch/actions/workflows/main.yml/badge.svg)](https://github.com/boss-splus2/CarTouch/actions/workflows/main.yml)
 
 </div>
 
 <div dir="rtl">
 
-<div class="markdown-alert markdown-alert-warning" dir="rtl">
-<p class="markdown-alert-title">Warning</p>
-<p>‏CarTouch مستقیماً روی <b>CAN Bus زنده‌ی خودرو</b> کار می‌کند. ارسال یک فریم اشتباه می‌تواند باعث رفتار ناخواسته‌ی خودرو شود. توسعه و آزمایش را ابتدا روی میز و در شرایط کنترل‌شده انجام دهید، حالت <b>Listen-Only</b> را تا زمان اطمینان فعال نگه دارید و هر فرمان کنترلی را فقط روی خودرویی اجرا کنید که اختیار آزمایش آن را دارید.</p>
-</div>
+> [!WARNING]
+> ‏CarTouch مستقیماً روی **CAN Bus زنده‌ی خودرو** کار می‌کند. ارسال یک فریم اشتباه می‌تواند باعث رفتار ناخواسته‌ی خودرو شود. توسعه و آزمایش را ابتدا روی میز و در شرایط کنترل‌شده انجام دهید، حالت **Listen-Only** را تا زمان اطمینان فعال نگه دارید و هر فرمان کنترلی را فقط روی خودرویی اجرا کنید که اختیار آزمایش آن را دارید.
+
+> [!IMPORTANT]
+> **Beta — روی خودرو تست‌نشده؛ فقط build/native test.** هیچ ادعایی درباره‌ی عملکرد روی خودرو یا برد واقعی تا زمان ثبت آزمون سخت‌افزاری معتبر ارائه نمی‌شود.
 
 <h2 dir="rtl" id="-فهرست">📑 فهرست</h2>
 
@@ -41,7 +43,7 @@
 
 <table dir="rtl">
 <tr>
-<td align="center"><b></b></td>
+<td align="center"><b>بخش</b></td>
 <td align="center"><b>قابلیت</b></td>
 </tr>
 <tr>
@@ -212,14 +214,14 @@ flowchart LR
 <td align="center">فلش ۱۶ مگابایت + PSRAM هشت مگابایتی</td>
 </tr>
 <tr>
-<td align="center"><b>ترنسیور CAN سه‌ولت</b> (مثل SN65HVD230)</td>
+<td align="center"><b>ماژول CJMCU-1051 با TJA1051</b></td>
 <td align="center">۱</td>
-<td align="center">برای CAN1 (TWAI)</td>
+<td align="center">برای CAN1 (TWAI)؛ نسخه‌ی دقیق تراشه/برد، مخصوصاً VIO، باید روی ماژول بررسی شود</td>
 </tr>
 <tr>
-<td align="center"><b>ماژول MCP2515</b> (کریستال 8 MHz)</td>
+<td align="center"><b>ماژول MCP2515 + TJA1050</b> (کریستال 8 MHz)</td>
 <td align="center">۱</td>
-<td align="center">برای CAN2؛ SPI آن با TFT/Touch مشترک است</td>
+<td align="center">برای CAN2؛ SPI آن با TFT/Touch مشترک است و برای رابط 5V به level shifter نیاز دارد</td>
 </tr>
 <tr>
 <td align="center"><b>نمایشگر TFT با ILI9341</b></td>
@@ -227,9 +229,9 @@ flowchart LR
 <td align="center">SPI، همراه Touch Controller از نوع XPT2046</td>
 </tr>
 <tr>
-<td align="center"><b>مبدل تغذیه</b></td>
+<td align="center"><b>مبدل تغذیه خودرو → buck 5V</b></td>
 <td align="center">۱</td>
-<td align="center">ورودی تغذیه‌ی خودرو با مبدل مناسب به 3.3V</td>
+<td align="center">مبدل buck با جریان کافی، پیشنهادی حداقل 2A؛ پایه‌ی 5V DevKitC را تغذیه می‌کند و رگولاتور خود برد 3.3V را می‌سازد</td>
 </tr>
 <tr>
 <td align="center">سیم jumper و محفظه</td>
@@ -238,56 +240,89 @@ flowchart LR
 </tr>
 </table>
 
-<div class="markdown-alert markdown-alert-important" dir="rtl">
-<p class="markdown-alert-title">Important</p>
-<p>پروژه برای پنل <b>ILI9341</b> تنظیم شده است (<code>-DILI9341_DRIVER=1</code> در <code>platformio.ini</code>). اگر پنل شما کنترلر دیگری دارد، درایور را در <code>platformio.ini</code> عوض کنید و ابعاد رابط کاربری را با آن تطبیق دهید.</p>
-</div>
+> [!IMPORTANT]
+> پروژه برای پنل ILI9341 تنظیم شده است (-DILI9341_DRIVER=1 در platformio.ini). اگر پنل شما کنترلر دیگری دارد، درایور را در platformio.ini عوض کنید و ابعاد رابط کاربری را با آن تطبیق دهید.
+
 
 ---
 
 <h2 dir="rtl" id="-سیمبندی">🔌 سیم‌بندی</h2>
 
-<details open>
-<summary><b>پین‌های ESP32-S3 برای TFT، تاچ و CAN</b></summary>
+> [!CAUTION]
+> **هیچ خروجی 5V را مستقیم به GPIOهای ESP32-S3 وصل نکنید.** این بردها 5V-tolerant نیستند. برای CAN2 با MCP2515/TJA1050، level shifter مناسب بین ESP32-S3 و ماژول قرار دهید.
 
-<table dir="rtl">
-<tr>
-<td align="center"><b>سیگنال</b></td>
-<td align="center"><b>GPIO</b></td>
-</tr>
-<tr><td align="center">CAN1 / TWAI TX</td><td align="center">17</td></tr>
-<tr><td align="center">CAN1 / TWAI RX</td><td align="center">18</td></tr>
-<tr><td align="center">TFT CS</td><td align="center">10</td></tr>
-<tr><td align="center">TFT DC</td><td align="center">7</td></tr>
-<tr><td align="center">TFT RST</td><td align="center">4</td></tr>
-<tr><td align="center">SPI MOSI</td><td align="center">11</td></tr>
-<tr><td align="center">SPI MISO</td><td align="center">13</td></tr>
-<tr><td align="center">SPI SCLK</td><td align="center">12</td></tr>
-<tr><td align="center">TFT Backlight</td><td align="center">21</td></tr>
-<tr><td align="center">Touch CS</td><td align="center">14</td></tr>
-<tr><td align="center">CAN2 / MCP2515 CS</td><td align="center">15</td></tr>
-<tr><td align="center">CAN2 / MCP2515 INT</td><td align="center">16</td></tr>
-</table>
+### پین‌های ESP32-S3
 
-<blockquote dir="rtl">
-<p>پین‌های نهایی را همیشه از <code>src/config.h</code> و <code>platformio.ini</code> بررسی کنید.</p>
-</blockquote>
+| سیگنال | GPIO / مقدار پیش‌فرض |
+|---|---:|
+| CAN1 / TWAI TX → CJMCU-1051 CTX | 17 |
+| CAN1 / TWAI RX ← CJMCU-1051 CRX | 18 |
+| CAN2 / MCP2515 CS | 15 |
+| CAN2 / MCP2515 INT | 16 |
+| SPI SCK | 12 |
+| SPI MOSI / SI | 11 |
+| SPI MISO / SO | 13 |
+| TFT CS | 10 |
+| TFT DC | 7 |
+| TFT RST | 4 |
+| TFT Backlight | 21 |
+| Touch CS | 14 |
+| SD CS | `-1` پیش‌فرض؛ غیرفعال |
+| Five-way GPIO pins | بدون پین پیش‌فرض |
+| Five-way ADC pin | `-1` پیش‌فرض؛ غیرفعال |
+| Touch IRQ | در این build پین اختصاصی مستند/پیکربندی نشده |
 
-</details>
+### CAN1 — CJMCU-1051 / TJA1051
 
-<details open>
-<summary><b>CAN2 (MCP2515)</b></summary>
+| پایه ماژول | اتصال |
+|---|---|
+| CTX / TXD | `GPIO17` از ESP32-S3 |
+| CRX / RXD | `GPIO18` به ESP32-S3 |
+| VCC | `5V` |
+| GND | زمین مشترک |
+| VIO | **اگر نسخه‌ی برد VIO دارد: 3.3V** |
+| S | برای حالت عادی طبق نسخه‌ی تراشه/برد؛ در TJA1051 حالت Silent با سطح HIGH فعال می‌شود، بنابراین برای حالت عادی LOW/GND است |
 
-CAN2 از کریستال 8 MHz روی MCP2515 و ترنسیور TJA1050 و SPI مشترک با TFT/Touch استفاده می‌کند. SPI HAL در Arduino-ESP32 transactionهای هم‌زمان روی bus را با mutex داخلی سری می‌کند؛ هر کد task جدید باید انتقال SPI را با `beginTransaction()`/`endTransaction()` انجام دهد. CS و INT قابل تنظیم هستند و پیش‌فرض آن‌ها GPIO15 و GPIO16 است. زمین ماژول‌ها باید مشترک باشد.
+NXP برای TJA1051 نسخه‌ی `/3` پایه‌ی VIO را برای سطح منطقی I/O معرفی می‌کند و VCC را 4.5 تا 5.5V مشخص می‌کند؛ در نسخه‌های بدون VIO، RXD می‌تواند در سطح VCC باشد. بنابراین **نوع دقیق TJA1051 روی CJMCU-1051 را بررسی کنید** و اگر VIO یا اتصال داخلی برد متفاوت است، طبق datasheet همان نسخه عمل کنید. citeturn0search12turn0search14
 
-<div class="markdown-alert markdown-alert-caution" dir="rtl">
-<p class="markdown-alert-title">Caution</p>
-<p>GPIOهای ESP32-S3 مقاوم در برابر 5V نیستند. سطح منطقی TJA1051 به variant برد بستگی دارد و خروجی RXD نباید بیش از 3.3V به ESP32-S3 بدهد. بسیاری از بردهای MCP2515/TJA1050 با منطق 5V کار می‌کنند؛ در نبود level shifter روی خود برد، برای SCK/MOSI/CS و نیز MISO/INT مبدل سطح مناسب قرار دهید. هیچ سیگنال 5V را مستقیم به GPIO متصل نکنید.</p>
-</div>
+### CAN2 — MCP2515 + TJA1050
 
-</details>
+| پایه ماژول | اتصال |
+|---|---|
+| CS | `GPIO15`، از طریق level shifter |
+| INT | `GPIO16`، از طریق level shifter |
+| SCK | `GPIO12`، از طریق level shifter |
+| SI / MOSI | `GPIO11`، از طریق level shifter |
+| SO / MISO | `GPIO13`، از طریق level shifter |
+| VCC | `5V` |
+| GND | زمین مشترک |
+| کریستال | 8 MHz |
 
----
+برای این ماژول یک **level shifter مناسب ۴ کاناله** (یا مدار چندکاناله‌ی معادل با جهت‌دهی صحیح برای هر سیگنال) بین ESP32-S3 و ماژول قرار دهید؛ مسیرهای `SCK/SI/CS` از ESP32 به ماژول و مسیرهای `SO/INT` از ماژول به ESP32 هستند. TJA1050 سطح منطقی را بر مبنای VCC=5V دارد و اتصال مستقیم خروجی آن به GPIOهای ESP32-S3 می‌تواند باعث آسیب شود. citeturn0search6
+
+> [!IMPORTANT]
+> **زمین همه‌ی ماژول‌ها و ESP32-S3 باید مشترک باشد.** CANH و CANL را با قطبیت صحیح به باس وصل کنید.
+
+### اتصال به OBD-II خودرو
+
+- پین **6 = CAN-H**
+- پین **14 = CAN-L**
+- پین‌های **4 و 5 = GND**
+- پین **16 = +12V**
+
+بعضی خودروها CAN موردنظر را پشت gateway قرار می‌دهند و ممکن است باس موردنظر مستقیماً روی OBD-II در دسترس نباشد.
+
+### ترمینیشن
+
+> [!WARNING]
+> هنگام اتصال به پورت OBD-II خودرو، **جامپر 120Ω با نام J1 روی ماژول MCP2515 را بردارید**. ترمینیشن فقط برای تست رومیزی با دو نود استفاده شود؛ اضافه‌کردن مقاومت موازی روی باس خودرو می‌تواند امپدانس باس را مختل کند.
+
+### تغذیه
+
+ورودی خودرو → **فیوز و حفاظت در برابر spike/load-dump (توصیه می‌شود برای شرایط تا حدود 36V و بالاتر طراحی شود)** → buck به **5V** با جریان کافی (مثلاً ≥2A) → ورودی 5V برد DevKitC. رگولاتور خود DevKitC ریل 3.3V را تولید می‌کند. **ریل 5V و ریل 3.3V را در مستندات و سیم‌بندی جدا در نظر بگیرید.**
+
+> [!NOTE]
+> حفاظت ورودی، فیوز و محافظ load-dump در این پروژه به‌عنوان **توصیه‌ی نصب** مستند شده‌اند و پیاده‌سازی سخت‌افزاری آن‌ها در مخزن تأیید نشده است.
 
 <h2 dir="rtl" id="-نصب-و-راهاندازی">🚀 نصب و راه‌اندازی</h2>
 
@@ -308,10 +343,8 @@ pio device monitor                            # مانیتور سریال
 
 <p class="markdown-alert markdown-alert-warning" dir="rtl"><b>هشدار:</b> فرمان دستی <code>uploadfs</code> کل SPIFFS را جایگزین می‌کند و می‌تواند پروفایل‌های یادگرفته‌شده، ضبط‌های CAN و DBCهای کاربر را پاک کند. قبل از اجرا داده‌ها را export کرده و در محل دیگری پشتیبان بگیرید. OTA وب تا وقتی پروفایل، ضبط CAN یا مانیفست/فایل بازیابی DBC کاربر در SPIFFS داخلی وجود دارد، جایگزینی را رد می‌کند؛ خود OTA پشتیبان خودکار نمی‌سازد.</p>
 
-<div class="markdown-alert markdown-alert-warning" dir="rtl">
-<p class="markdown-alert-title">محدودیت پیکربندی حافظه</p>
-<p>پروفایل اصلی <code>esp32-s3-devkitc-1</code> از برد N16R8 با فلش 16MB و PSRAM نوع OPI استفاده می‌کند. پروفایل‌های <code>esp32-s3-4mb</code> و <code>esp32-s3-4mb-psram</code> جدول واقعی 4MB و filesystem کوچک‌شده دارند؛ دومی برای PSRAM نوع QSPI است. firmware فعلی در هر دو پروفایل نزدیک به سقف 1.5MB هر OTA slot است، بنابراین تغییرات بزرگ بعدی ممکن است به جدول پارتیشن تازه نیاز داشته باشد.</p>
-</div>
+> [!WARNING]
+> **محدودیت پیکربندی حافظه:** پروفایل اصلی `esp32-s3-devkitc-1` از برد N16R8 با فلش 16MB و PSRAM نوع OPI استفاده می‌کند. پروفایل‌های `esp32-s3-4mb` و `esp32-s3-4mb-psram` جدول واقعی 4MB و filesystem کوچک‌شده دارند؛ دومی برای PSRAM نوع QSPI است. firmware فعلی در هر دو پروفایل نزدیک به سقف 1.5MB هر OTA slot است، بنابراین تغییرات بزرگ بعدی ممکن است به جدول پارتیشن تازه نیاز داشته باشد.
 
 <p>در پروفایل 4MB فقط Web UI و 10 فایل DBC منطقه‌ای/وارداتی منتخب بسته‌بندی می‌شوند؛ مجموعه‌ی کامل 57 فایل در <code>data/dbc</code> دست‌نخورده می‌ماند و برای پروفایل 16MB است. فهرست خودرو در زمان اجرا فقط DBCهای موجود در filesystem را نشان می‌دهد. DBCهای کاربر و ضبط CAN از سیاست انتخاب SPIFFS/SD استفاده می‌کنند؛ پروفایل‌های سفارشی فعلاً فقط در SPIFFS ذخیره می‌شوند. SD پیش‌فرض غیرفعال است، خودکار format نمی‌شود و mount/removal آن روی سخت‌افزار هنوز نیازمند آزمون است. صفحه‌ی وب ترجیح مستقل DBC، پروفایل، ضبط و پشتیبان را ذخیره می‌کند، اما در حال حاضر فقط ترجیح DBC و ضبط به مسیر ذخیره‌سازی وصل است؛ ذخیره‌ی پروفایل روی SD و backup/restore واقعی موجود نیست. درایور اختیاری Five-way از GPIO یا ADC، تنظیم Serial و رویدادهای کوتاه/بلند را دارد و ورودی keypad را به LVGL می‌دهد؛ تنظیم از Web/BLE و آزمون عملی روی برد هنوز انجام نشده‌اند. تنظیم پین نمایشگر در زمان اجرا و کنترلرهای TFT غیر از ILI9341 نیز پشتیبانی نمی‌شوند.</p>
 
@@ -333,33 +366,15 @@ pio run -e esp32-s3-headless
 <details>
 <summary><b>فلش دستی با esptool</b></summary>
 
-پروفایل اصلی از جدول <code>cartouch_16MB.csv</code> استفاده می‌کند. پروفایل‌های 4MB از <code>cartouch_4MB.csv</code> و filesystem کوچک‌شده از Web UI و DBCهای منتخب استفاده می‌کنند؛ فایل‌های اصلی در <code>data/</code> حذف یا تغییر نمی‌کنند. فضای SPIFFS چهارمگابایتی برای کل مجموعه‌ی DBC کافی نیست. برای نقشه‌ی کامل پارتیشن‌ها و imageهای هر دو اندازه، <code>CarTouch_SPEC.md</code> بخش 18 را ببینید.
-
-آدرس فایل‌ها برای جدول 16MB:
-
-<table dir="rtl">
-<tr>
-<td align="center"><b>فایل</b></td>
-<td align="center"><b>آدرس</b></td>
-</tr>
-<tr><td align="center"><code>bootloader.bin</code></td><td align="center"><code>0x0</code></td></tr>
-<tr><td align="center"><code>partitions.bin</code></td><td align="center"><code>0x8000</code></td></tr>
-<tr><td align="center"><code>boot_app0.bin</code></td><td align="center"><code>0xE000</code></td></tr>
-<tr><td align="center"><code>firmware.bin</code></td><td align="center"><code>0x10000</code></td></tr>
-<tr><td align="center"><code>spiffs.bin</code></td><td align="center"><code>0xA10000</code></td></tr>
-</table>
-تنظیمات ابزارهای فلش گرافیکی (مثل ESP32 Flash/Erase): چیپ ESP32-S3، فلش 16MB (یا 4MB برای پروفایل‌های 4MB)، فرکانس 80MHz و حالت QIO (در صورت بوت‌نشدن، DIO). `boot_app0.bin` را حتماً جداگانه روی `0xE000` اضافه کنید. فایل‌ها باید همه از یک پوشه‌ی بیلد (یک پروفایل) باشند.
-
-برای جدول 4MB، آدرس `spiffs.bin` برابر `0x310000` است؛ سایر imageهای سیستم در همان آدرس‌های جدول بالا قرار دارند. جدول و اندازه‌ی دقیق همه‌ی پارتیشن‌ها در بخش 18 مشخصات فنی آمده است. `boot_app0.bin` در `0xE000` داخل پارتیشن `otadata` نوشته می‌شود و پارتیشن جدا نیست.
+نقشه‌ی کامل آدرس‌ها و هشدارهای `uploadfs` به <code>docs/FLASHING.md</code> منتقل شده است. برای manual flash فقط imageهای یک profile را با هم استفاده کنید.
 
 </details>
 
-<div class="markdown-alert markdown-alert-note" dir="rtl">
-<p class="markdown-alert-title">Note</p>
-<p>‏CI firmwareهای اصلی، headless و 4MB را می‌سازد و imageهای filesystem کامل و کوچک را بررسی می‌کند. محتوای کامل <code>data/</code> فقط در پروفایل 16MB قرار می‌گیرد؛ فایل‌های learned، ضبط‌های CAN و DBCهای کاربر ممکن است در زمان اجرا در SPIFFS باشند، بنابراین پیش از <code>uploadfs</code> دستی حتماً آن‌ها را export و در محل دیگری backup بگیرید.</p>
-</div>
+> [!NOTE]
+> ‏CI firmwareهای اصلی، headless و 4MB را می‌سازد و imageهای filesystem کامل و کوچک را بررسی می‌کند. محتوای کامل data/ فقط در پروفایل 16MB قرار می‌گیرد؛ فایل‌های learned، ضبط‌های CAN و DBCهای کاربر ممکن است در زمان اجرا در SPIFFS باشند، بنابراین پیش از uploadfs دستی حتماً آن‌ها را export و در محل دیگری backup بگیرید.
 
-**بیلد خودکار:** workflow در `.github/workflows/main.yml` شامل build فریمویر و filesystem، static analysis، تست‌های native، بررسی اندازه‌ی SPIFFS و آپلود artifact است.
+
+**بیلد خودکار:** workflow در `.github/workflows/main.yml` چهار profile را build می‌کند و در پایان فقط یک artifact با نام **`cartouch-firmware`** می‌سازد؛ داخل آن برای هر profile یک پوشه وجود دارد. هر پوشه شامل `firmware.bin`، `bootloader.bin`، `partitions.bin` و `boot_app0.bin` است؛ profileهایی که filesystem می‌سازند همچنین `spiffs.bin` دارند و برای `firmware.bin`/`spiffs.bin` فایل `.sha256` تولید می‌شود. **`esp32-s3-headless` در CI با `fs: false` ساخته می‌شود و `spiffs.bin` ندارد.** برای UI وب و فایل‌های `data/` از profile دارای filesystem، به‌ویژه profile 16MB، استفاده کنید.
 
 <details>
 <summary><b>کتابخانه‌ها (خودکار توسط PlatformIO نصب می‌شوند)</b></summary>
@@ -383,19 +398,48 @@ pio run -e esp32-s3-headless
 
 ---
 
+### فهرست دستورات USB Serial
+
+| دستور | کاربرد |
+|---|---|
+| `help` | نمایش همه‌ی دستورات |
+| `status` | firmware، flash/PSRAM، heap، Wi-Fi/Web/BLE و storage |
+| `memory` | اندازه‌گیری heap/PSRAM/stack |
+| `config` | تنظیمات CAN1/CAN2، کانال OBD/Learn/Vehicle |
+| `can` | وضعیت و diagnostics دو باس |
+| `obd` | آخرین داده OBD |
+| `dtc read` / `dtc clear` / `dtc status` | عملیات DTC |
+| `learn` | وضعیت Learn Mode |
+| `record status` / `record start <1\|2\|both>` / `record stop` | کنترل ضبط CAN |
+| `record delete <canNNNN.csv>` | حذف فایل ضبط معتبر |
+| `storage` | وضعیت SPIFFS و پروفایل‌ها |
+| `sd status` / `sd cs <gpio\|-1>` / `sd store <cat> <auto\|internal\|sd>` / `sd reset` | مدیریت SD |
+| `btn status` / `btn off` / `btn gpio u d l r ok` / `btn adc pin u d l r ok` | مدیریت Five-way |
+| `errors` | مشاهده‌ی لاگ خطا |
+| `control <command>` | ارسال درخواست کنترل از مسیر guard مشترک |
+
+`WS_PORT` در کد فعلی وجود ندارد؛ WebSocket روی مسیر `/ws` همان WebServer پورت 80 کار می‌کند.
+
+### نسخه‌های pin شده
+- PlatformIO Core: **6.2.0**
+- Espressif32: **7.1.3**
+- Firmware: **`CAR_TOUCH_FIRMWARE_VERSION` = `1.0.0`** در `src/config.h`
+
 <h2 dir="rtl" id="-اولین-اجرا">🔑 اولین اجرا</h2>
 
-<ol dir="rtl">
-<li>دستگاه را روشن کنید و در صورت نیاز، کالیبراسیون لمسی را انجام دهید.</li>
-<li>به Access Point دستگاه وصل شوید یا تنظیمات Station را انجام دهید.</li>
-<li>آدرس وبی که در Serial Monitor نمایش داده می‌شود را در مرورگر باز کنید.</li>
-<li>با حساب مدیریتی وارد شوید.</li>
-<li><b>رمز پیش‌فرض را قبل از فروش تغییر دهید.</b> رمز پیش‌فرض ثابت است و فقط در <code>src/config.h</code> (<code>WEB_DEFAULT_PASS</code>) نوشته شده؛ وای‌فای، وب، صفحه و بلوتوث همه از همان استفاده می‌کنند. با گذاشتن <code>CT_REQUIRE_PASSWORD_CHANGE</code> روی 1، BLE و OTA بلوتوثی تا تغییر رمز رد می‌شوند. در حالت فعلی (0) رمز پیش‌فرض همه‌جا پذیرفته می‌شود. رمز وای‌فای دستگاه بعد از تغییر رمز و راه‌اندازی مجدد عوض می‌شود.</li>
-<li>برای آزمایش CAN ابتدا Listen-Only را نگه دارید.</li>
-<li>پیش از فعال‌کردن فرمان‌های کنترلی، پروفایل خودرو را انتخاب یا ایجاد کنید و هر فرمان یادگرفته‌شده را جداگانه تأیید کنید.</li>
-</ol>
+1. دستگاه را روشن کنید و در صورت نیاز، کالیبراسیون لمسی را انجام دهید.
+2. در حالت AP به شبکه‌ی **`CarTouch`** وصل شوید.
+3. AP از **WPA2-PSK** استفاده می‌کند و سقف هم‌زمان آن **۴ کلاینت** است. رمز AP همان رمز دستگاه/وب است و در حالت پیش‌فرض `12345678` است.
+4. IP پیش‌فرض AP در اجرای فعلی از `WiFi.softAPIP()` خوانده می‌شود؛ مقدار پیش‌فرض Arduino-ESP32 برای AP برابر **`192.168.4.1`** است. برای جلوگیری از فرض اشتباه، IP چاپ‌شده در Serial را مرجع نهایی قرار دهید.
+5. وب‌سرور روی **پورت 80** است؛ بنابراین آدرس معمول `http://192.168.4.1/` خواهد بود.
+6. نام کاربری مدیریتی پیش‌فرض **`CarTouch`** و رمز **`12345678`** است. منظور از «حساب مدیریتی» همین حساب واحد دستگاه است.
+7. **رمز پیش‌فرض در مخزن عمومی قابل مشاهده است.** این وضعیت برای استفاده‌ی شخصی فعلی پذیرفته شده است؛ قبل از تجاری‌سازی یا اشتراک‌گذاری دستگاه، رمز را تغییر دهید.
+8. برای آزمایش CAN ابتدا **Listen-Only** را نگه دارید.
+9. پیش از فعال‌کردن فرمان‌های کنترلی، پروفایل خودرو را انتخاب/ایجاد کنید و هر فرمان یادگرفته‌شده را جداگانه تأیید کنید.
 
 ---
+
+> **نکته:** حالت Deep Sleep علاوه بر Auto Sleep، یک بیدارشدن دوره‌ای دارد؛ مقدار فعلی `DEEP_SLEEP_WAKEUP_DURATION` برابر 60 ثانیه است.
 
 <h2 dir="rtl" id="-معماری-و-امنیت">🏗️ معماری و امنیت</h2>
 
@@ -403,15 +447,15 @@ pio run -e esp32-s3-headless
 <summary><b>جریان نرم‌افزار</b></summary>
 
 ```mermaid
-flowchart TD
-    UI["TFT / Web<br/>تنظیمات · انتخاب خودرو · Learn / Verify · کنترل"] --> APM["ActiveProfileManager<br/>DBC داخلی یا پروفایل سفارشی"]
-    APM --> VC["VehicleControl"]
-    VC --> CM["CANManager / TWAI"]
-    CM --> BUS["CAN Bus"]
-    BUS --> CM2["CANManager"]
-    CM2 --> OBD["OBD2Reader"]
-    CM2 --> LE["LearnEngine"]
-    CM2 --> DIAG["UI diagnostics"]
+flowchart RL
+    UI["TFT / Web / Serial console"] --> VS["VehicleControl / Learn / OBD"]
+    VS --> CS["CANService"]
+    CS --> C1["CAN1: CANManager / TWAI / TJA1051"]
+    CS --> C2["CAN2: MCP2515 / TJA1050"]
+    CS --> BUS["CAN Bus"]
+    CS --> REC["CanRecorder"]
+    UI --> BLE["BLE"]
+    CS --> REC
 ```
 
 جزئیات معماری، قراردادهای بین ماژول‌ها و محدودیت‌های ایمنی در <a href="./CarTouch_SPEC.md"><code>CarTouch_SPEC.md</code></a> نگهداری می‌شود.
@@ -419,18 +463,45 @@ flowchart TD
 </details>
 
 <details open>
-<summary><b>امنیت</b></summary>
+<summary><b>امنیت و مدل تهدید</b></summary>
 
-- Listen-Only باید نقطه‌ی شروع آزمایش CAN باشد.
-- فرمان‌های Learn Mode ابتدا به‌صورت تأییدنشده ذخیره می‌شوند و ارسال فرمان آزمایشی فقط از مسیر تأیید صریح انجام می‌شود.
-- WebSocket بدون session token معتبر پذیرفته نمی‌شود.
-- تغییر رمز، نشست‌های قبلی را بی‌اعتبار می‌کند.
-- بدنه‌ی درخواست‌های HTTP پیش از parse سقف دارد؛ واردکردن پروفایل و بارگذاری DBC سقف‌های جداگانه دارند و بدنه‌های با طول نامشخص رد می‌شوند. OTA فایل به‌صورت تکه‌ای نوشته می‌شود و اندازه‌اش را محدودیت پارتیشن کنترل می‌کند.
-- OTA فقط از مسیر احراز هویت‌شده در دسترس است.
-- درخواست‌های تغییردهنده‌ی (POST/PUT/PATCH/DELETE) که مرورگر از یک وب‌سایت دیگر بفرستد با خطای 403 رد می‌شوند (بررسی هدر Origin در برابر Host)؛ ابزارهای بدون هدر Origin مثل curl همچنان با رمز کار می‌کنند.
-- نام (label) فرمان فقط حرف انگلیسی، عدد، فاصله و `_ - .` می‌پذیرد و خروجی‌های وب هنگام نمایش escape می‌شوند.
-- نبود HTTPS یعنی session و سایر داده‌های وب در شبکه‌ی محلی محرمانگی TLS ندارند.
+> [!WARNING]
+> این پروژه **HTTPS ندارد**. احراز هویت HTTP از نوع **Basic Authentication** است؛ اعتبارنامه در هر درخواست به شکل Base64 ارسال می‌شود و Base64 رمزنگاری نیست. روی شبکه‌ی ناامن نباید آن را معادل TLS در نظر گرفت.
 
+> [!IMPORTANT]
+> نام کاربری و رمز پیش‌فرض در مخزن عمومی قابل مشاهده‌اند: `CarTouch` / `12345678`. هر کسی که به AP دسترسی پیدا کند و این رمز را بداند می‌تواند وارد رابط مدیریتی شود و، پس از عبور از guardهای فرمان، درخواست کنترلی بفرستد. این ریسک برای استفاده‌ی شخصی فعلی **عمداً پذیرفته شده** است و قبل از تجاری‌سازی یا اشتراک‌گذاری دستگاه باید رمز تغییر کند.
+
+| سطح دسترسی مهاجم | آنچه می‌تواند انجام دهد | محدودیت/محافظ |
+|---|---|---|
+| هر فرد نزدیک دستگاه که به AP وصل شود | مشاهده‌ی سرویس وب و تلاش برای ورود؛ در صورت داشتن رمز، دسترسی مدیریتی | WPA2-PSK، سقف ۴ کلاینت، lockout ورود |
+| شبکه‌ی STA | دسترسی به وب در صورت رسیدن به IP دستگاه و داشتن اعتبارنامه | Host validation، Basic Auth، guardهای فرمان |
+| BLE | status و مسیرهای مجاز BLE؛ فرمان/OTA فقط پس از AUTH | AUTH و lockout؛ BLE Just Works هویت را با MITM تأیید نمی‌کند |
+| USB/Serial فیزیکی | اجرای فرمان‌های کنسول، از جمله `control <command>` | اعتماد این مسیر = دسترسی فیزیکی؛ فرمان‌های کنترلی از guard مشترک عبور می‌کنند |
+| دسترسی فیزیکی به برد/Flash | امکان دستکاری firmware/config در صورت نبود حفاظت سخت‌افزاری | Flash Encryption و Secure Boot در تنظیمات پروژه فعال نیستند |
+
+### محدوده‌ی `CT_REQUIRE_PASSWORD_CHANGE`
+- مقدار فعلی **0** است و عمدی است.
+- اگر 1 شود، در کد فعلی **BLE command و BLE OTA** تا تغییر رمز پیش‌فرض مسدود می‌شوند؛ Web Basic Auth با رمز پیش‌فرض همچنان می‌تواند وارد شود. بنابراین این flag در حال حاضر «اجبار سراسری برای وب» نیست.
+
+### اعتبارنامه و نشست
+- یک رمز برای **وب، WPA2 AP، BLE AUTH و BLE OTA** استفاده می‌شود؛ جداسازی رمزها فعلاً فقط گزینه‌ی آینده است.
+- رمز در config/NVS به‌صورت متن ساده نگهداری می‌شود و Flash Encryption فعال نیست.
+- Web از Basic Auth استفاده می‌کند و HTTPS ارائه نمی‌شود.
+- token نشست WebSocket یک token سراسری برای instance وب‌سرور است؛ مقایسه‌ی آن constant-time است و انقضای `SESSION_TOKEN_TIMEOUT` (۱۵ دقیقه) در هر پیام حساس WebSocket دوباره بررسی می‌شود. تغییر رمز همه‌ی نشست‌ها را باطل می‌کند.
+- فراخوانی `/api/session-token` تا وقتی token معتبر است آن را بی‌دلیل برای کل کلاینت‌ها rotate نمی‌کند؛ در انقضا token تازه صادر می‌شود. این رفتار عمداً برای جلوگیری از انداختن نشست‌های دیگر با یک درخواست انتخاب شده است.
+- Host هر درخواست وب/upgrade باید یکی از IPهای فعلی AP/STA یا نام مجاز `CarTouch` باشد؛ Host خالی رد می‌شود تا مسیر HTTP/1.0-style bypass باقی نماند.
+- BLE از **Just Works** با LE Secure Connections و بدون MITM استفاده می‌کند. نام تبلیغ `CarTouch-XXXX` فقط شناسه‌ی کوتاه chip است و credential در advertising قرار نمی‌گیرد. `STATUS` می‌تواند بدون command AUTH وضعیت عمومی بدهد، اما commandهای کنترلی و OTA قبل از AUTH پذیرفته نمی‌شوند.
+- پاسخ‌های وب headerهای `X-Content-Type-Options: nosniff`، `X-Frame-Options: DENY`، CSP برای `frame-ancestors` و `Referrer-Policy: no-referrer` دارند؛ APIهای حساس نیز باید بدون cache مصرف شوند.
+
+### ایمنی فرمان
+- Listen-Only پیش‌فرض است.
+- Learn Mode بدون تأیید صریح فرمان واقعی ارسال نمی‌کند.
+- Web، BLE، TFT و Serial `control` به مسیر guard مشترک فرمان می‌روند.
+- محدودیت فاصله/نرخ و duty-cycle actuatorها در مسیر اجرای فرمان اعمال می‌شود.
+- `/api/control` فقط `command` غیرخالی را وارد callback می‌کند؛ اجرای واقعی بعداً از `ctCommandGate` و مسیر `VehicleControl` عبور می‌کند. command نامعتبر یا Learn/verify تأییدنشده در Listen-Only رد می‌شود.
+- محافظ brute-force ورود بر اساس IP است: **۵ تلاش ناموفق** باعث **۳۰ ثانیه lockout** می‌شود. جدول فقط **۸ IP** را هم‌زمان نگه می‌دارد و وقتی پر باشد قدیمی‌ترین ورودی جایگزین می‌شود.
+- این lockout در `/`، `/login` و Basic Auth مشترک است؛ با موفقیت ورود شمارنده‌ی همان IP پاک می‌شود.
+- USB Serial احراز هویت ندارد و `control <command>` برای کسی که دسترسی فیزیکی به USB دارد در دسترس است؛ اعتماد این مسیر عمداً برابر با دسترسی فیزیکی است.
 </details>
 
 <details>
@@ -448,20 +519,31 @@ flowchart TD
 </details>
 
 <details>
-<summary><b>اندازه‌گیری Heap و Stack</b></summary>
+<summary><b>حافظه و OTA</b></summary>
 
-از USB Serial با سرعت 115200، فرمان <code>memory</code> را برای مشاهده‌ی heap آزاد فعلی/کمینه‌ی زمان boot، بزرگ‌ترین بلوک قابل تخصیص، وضعیت PSRAM و high-water کمینه‌ی stack وظیفه‌ی اصلی <code>loop</code> اجرا کنید. برای سنجش، دستگاه را reboot کنید تا مقدارهای کمینه از boot تازه شروع شوند؛ سپس workloadهای سنگین و هم‌زمان (وب، ثبت CAN روی هر دو باس، انتخاب/بارگذاری DBC و BLE) را اجرا و خروجی را در طول آزمون ثبت کنید. این فرمان stack taskهای مستقل AsyncTCP/BLE را اندازه نمی‌گیرد و خروجی اجرای سخت‌افزاری باید جداگانه ثبت شود؛ مقدارهای build یا شبیه‌سازی جایگزین اندازه‌گیری روی برد نیستند.
-
-</details>
-
-<details>
-<summary><b>OTA و BLE</b></summary>
-
-OTA برای firmware و filesystem از Web UI فعال است و برای هر تصویر، SHA-256 مورد انتظار را از artifact همان build می‌گیرد؛ فایل‌های `.sha256` همراه firmware در خروجی CI هستند. BLE مستقل از Wi-Fi اجرا می‌شود و BLE OTA فقط پس از تطبیق اندازه و SHA-256 فعال می‌شود؛ قالب قدیمی `START` بدون هش پذیرفته نمی‌شود. Firmware روی slot غیرفعال نوشته می‌شود، اما rollback سلامت پس از اولین boot پیاده نشده؛ filesystem یک پارتیشن دارد و بازیابی خودکار در قطع برق ندارد. SHA-256 امضای دیجیتال نیست و ارتباط وب HTTPS ندارد. نسخه‌ی firmware از <code>CAR_TOUCH_FIRMWARE_VERSION</code> در <code>src/config.h</code> می‌آید. جزئیات در <a href="./BLE_OTA.md"><code>BLE_OTA.md</code></a>.
-
+جزئیات اندازه‌گیری heap/PSRAM در <code>docs/MEMORY.md</code> و جزئیات OTA در <code>docs/OTA.md</code> نگهداری می‌شود.
 </details>
 
 ---
+
+<h2 dir="rtl" id="-وضعیت-تست-خودرو">🚗 وضعیت تست خودرو</h2>
+
+- **خودروهای تست‌شده:** فعلاً هیچ موردی ثبت نشده است.
+- **خودروهای تست‌نشده:** همه‌ی مدل‌ها/سال‌هایی که نام آن‌ها در پروژه آمده‌اند تا زمان ثبت آزمون واقعی، تست‌نشده محسوب می‌شوند.
+- build و native test به‌تنهایی جایگزین تست کنترل‌شده روی برد و خودرو نیستند.
+
+<h2 dir="rtl" id="-عیبیابی">🛠️ عیب‌یابی کوتاه</h2>
+
+| مشکل | بررسی‌های اول |
+|---|---|
+| CAN وصل نمی‌شود | Listen-Only، bitrate، CANH/CANL، زمین مشترک، ترمینیشن J1، level shifter و اینکه gateway خودرو باس را از OBD جدا نکرده باشد |
+| تاچ کار نمی‌کند | `ILI9341`/`XPT2046`، `TOUCH_CS=14`، کالیبراسیون و تغذیه؛ در headless تاچ عمداً initialize نمی‌شود |
+| وب باز نمی‌شود | AP=`CarTouch`، WPA2، IP چاپ‌شده در Serial، پورت 80 و Host معتبر؛ اگر SPIFFS mount نشده باشد UI فایل‌محور در دسترس نیست |
+| SPIFFS mount نشد | filesystem درست همان profile را فلش کنید؛ firmware خودکار format نمی‌کند تا داده‌های کاربر پاک نشوند |
+| بعد از فلش بوت نمی‌شود | imageها باید از یک profile باشند؛ حالت flash را QIO و در صورت مشکل DIO امتحان کنید؛ آدرس‌های manual flash را از SPEC بگیرید |
+
+> [!NOTE]
+> این موارد troubleshooting هستند و **اثبات تست روی خودرو/برد واقعی محسوب نمی‌شوند**.
 
 <h2 dir="rtl" id="-ساختار-پروژه">📂 ساختار پروژه</h2>
 
@@ -474,6 +556,7 @@ CarTouch/
 ├── cartouch_4MB.csv              # جدول پارتیشن ۴ مگابایتی
 ├── boards/                       # تعریف بردهای N16R8 و 4MB
 ├── scripts/                      # چک‌های CI و اسکریپت فایل‌سیستم 4MB
+│   ├── check_*.py                # بررسی اندازه، DBC، SPIFFS و مسیرهای TX
 ├── DBC_AUDIT.md                  # گزارش خودکار فایل‌های DBC
 ├── README.md                     # همین فایل
 ├── CarTouch_SPEC.md              # مشخصات فنی و معماری
@@ -496,6 +579,11 @@ CarTouch/
 │   ├── wifi_manager.cpp/.h       # Wi-Fi (AP/STA)
 │   ├── ble_manager.cpp/.h        # BLE و BLE OTA
 │   ├── module_status.cpp/.h      # وضعیت runtime ماژول‌ها
+│   ├── buttons.cpp/.h             # Five-way GPIO/ADC
+│   ├── sd_storage.cpp/.h          # SD اختیاری؛ پیش‌فرض غیرفعال
+│   ├── can_recorder.cpp/.h        # ضبط CAN
+│   ├── dbc_store.cpp/.h           # ذخیره/اعتبارسنجی DBC
+│   ├── ct_sync_policy.*           # جلوگیری از تداخل SD و دکمه‌ها
 │   ├── custom_vehicle.h          # ساختار پروفایل‌های سفارشی
 │   ├── custom_vehicle_store.*    # ذخیره JSON در SPIFFS
 │   ├── learn_engine.*            # موتور یادگیری (capture/diff)
@@ -503,9 +591,11 @@ CarTouch/
 │   ├── error_log.*               # لاگ خطا و شمارنده‌های پایدار
 │   └── ct_*.h                    # parserها و validationهای مستقل از سخت‌افزار
 ├── test/test_native/             # تست‌های native
-└── data/                         # محتوای SPIFFS
+│   └── ecu_sim.h                  # شبیه‌ساز ECU برای تست native
+├── docs/                         # جزئیات فلش، حافظه و OTA
+├── data/                         # محتوای SPIFFS
     ├── index.html, style.css, app.js   # Web Dashboard
-    ├── dbc/                            # فایل‌های DBC
+    ├── dbc/                            # فایل‌های DBC + manifest.json
     └── custom_vehicles/                # در زمان اجرا ساخته می‌شود (نه در سورس)
 ```
 
@@ -529,11 +619,27 @@ CarTouch/
 <td align="center">پروتکل BLE و BLE OTA و نکات امنیتی آن</td>
 </tr>
 <tr>
+<td align="center"><code>docs/FLASHING.md</code></td>
+<td align="center">فلش دستی و آدرس imageها</td>
+</tr>
+<tr>
+<td align="center"><code>docs/MEMORY.md</code></td>
+<td align="center">اندازه‌گیری heap/PSRAM/stack</td>
+</tr>
+<tr>
+<td align="center"><code>docs/OTA.md</code></td>
+<td align="center">جزئیات OTA و SHA-256</td>
+</tr>
+<tr>
 <td align="center"><a href="./THIRD_PARTY_NOTICES.md"><code>THIRD_PARTY_NOTICES.md</code></a></td>
 <td align="center">نسخه، منبع و مجوز وابستگی‌ها و وضعیت منشأ/مجوز DBCها</td>
 </tr>
 </table>
 
-**مجوز:** اختصاصی (همه‌ی حقوق محفوظ) — متن کامل در `LICENSE`.
+> [!WARNING]
+> **وضعیت DBC:** مخزن عمومی است، اما منشأ و مجوز ۵۷ فایل DBC طبق `DBC_AUDIT.md`/`THIRD_PARTY_NOTICES.md` هنوز به‌صورت کامل تأیید نشده است. **سازنده/توزیع‌کننده:** پیش از تجاری‌سازی یا اشتراک‌گذاری دستگاه، منشأ و مجوز هر DBC را بررسی و مستند کنید. **کاربر نهایی:** فایل‌های DBC شخص ثالث را بدون بررسی مجوز دوباره منتشر یا تجاری نکنید.
+>
+> **مجوز پروژه:** اختصاصی (همه‌ی حقوق محفوظ) — متن کامل در `LICENSE`.
+
 
 </div>
