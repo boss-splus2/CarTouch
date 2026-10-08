@@ -1,50 +1,47 @@
-# CarTouch — Unified Root Repair and Documentation Sync Report
+# 🧩 گزارش اصلاح معماری CarTouch
 
-این نسخه یک اصلاح یکپارچه است؛ هیچ Stage جداگانه‌ای بخشی از روش انتشار این نسخه نیست.
+این سند خلاصه‌ای از اصلاحات انجام‌شده در معماری و مسیرهای ایمنی است؛ شرح جزئیات هر subsystem باید در سند تخصصی خودش نگهداری شود.
 
-## اصلاحات کد
+## اصلاحات اصلی
 
-- حذف `src/test_main.cpp` تکراری و نگه‌داشتن Native tests در `test/test_native/`.
-- افزودن `actuatorClass` صریح به فرمان‌های learned/manual و fail-closed کردن `UNKNOWN`.
-- verification پروفایل‌محور برای Web/TFT بدون تغییر active vehicle سراسری.
-- transaction/rollback برای profile و index؛ `index.json` فقط cache مشتق‌شده است.
-- lock مشترک `ctSync()` برای تنظیمات SD و Button.
-- یک منبع واحد برای سقف DBC و حفظ checker مسیرهای CAN TX.
-- حذف API بدون مصرف `WiFiManager::scanNetworks()`.
-- افزودن `CtOtaLock` برای مالکیت مشترک OTA بین Web و BLE.
-- استفاده Web OTA از authentication/lockout مرکزی.
+- فایل تکراری `src/test_main.cpp` حذف و تست‌ها در مسیر canonical Native نگهداری شدند.
+- actuator metadata به فرمان‌های learned/manual اضافه شد و مقدار ناشناخته به‌صورت fail-closed رفتار می‌کند.
+- Verification می‌تواند یک profile مشخص را بدون تغییر active vehicle هدف بگیرد.
+- ذخیره و حذف profile/index دارای rollback تراکنشی شده است.
+- `index.json` به‌عنوان داده مشتق‌شده از profileهای authoritative بازسازی می‌شود.
+- transactionهای مربوط به تنظیمات SD و Button از sync policy مشترک استفاده می‌کنند.
+- limit پیام‌های DBC به یک منبع مشترک متصل شده است.
+- API بلااستفاده network scan حذف شده است.
+- مالکیت OTA بین Web و BLE مشترک و انحصاری شده است.
+- احراز هویت Web OTA از مسیر احراز هویت مرکزی استفاده می‌کند.
+- بررسی مسیرهای CAN TX تضعیف نشده است.
 
-## همگام‌سازی مستندات
+## رفتارهای fail-safe
 
-فایل‌های زیر با کد فعلی بازبینی/به‌روزرسانی شده‌اند:
+- فرمانی که actuator metadata معتبر ندارد قابل اجرا نیست.
+- built-in DBC write mapping اختراع نشده است.
+- credential پیش‌فرض و pin mapping سخت‌افزاری در این اصلاحات تغییر داده نشده‌اند.
 
-- `README.md`
-- `README.en.md`
-- `CarTouch_SPEC.md`
-- `BLE_OTA.md`
-- `docs/OTA.md`
-- `docs/SECURITY.md`
-- `ROOT_ARCHITECTURE_REPAIR_REPORT.md`
+## اعتبارسنجی CI
 
-مستندات موجود `docs/FLASHING.md`, `docs/MEMORY.md`, `DBC_AUDIT.md` و `THIRD_PARTY_NOTICES.md` حفظ شده‌اند و در README/SPEC به آن‌ها ارجاع داده می‌شود.
+گزارش CI فعلی:
 
-مستندات اکنون صریحاً موارد حل‌نشده را نیز ثبت می‌کنند، از جمله:
+```text
+96 Tests 0 Failures 0 Ignored
+native:test_native [PASSED]
+```
 
-- timeout/watchdog خودکار برای OTA Web در قطع غیرعادی کلاینت؛
-- نبود `OtaManager` کامل و استفاده مستقیم Web/BLE از `Update` در کنار ownership lock؛
-- نبود migration کامل schema برای blob قدیمی `AppConfig`؛
-- نبود credential epoch مستقل؛
-- نبود storage coordinator واحد برای همه‌ی storage transactionها؛
-- refactor کامل `webserver.cpp` و `main.cpp` هنوز انجام نشده است.
+همچنین موارد زیر PASS هستند:
 
-## Validation
+- CAN TX path check
+- DBC limit check
+- DBC manifest audit
+- MCP2515 timing check
+- cppcheck برای profile 16 MB
+- cppcheck برای profile 4 MB
 
-- `python3 -m py_compile scripts/*.py` — PASS
-- `python3 scripts/check_tx_paths.py src` — PASS
-- `python3 scripts/check_dbc_limits.py .` — PASS
-- `python3 scripts/audit_dbc.py --check` — PASS؛ 57 DBC files
-- ZIP integrity check — باید پس از بسته‌بندی نهایی اجرا شود.
+cppcheck مجموعاً 6 هشدار LOW گزارش کرده و هیچ HIGH یا MEDIUM ندارد.
 
-## محدودیت اعتبارسنجی
+## مواردی که نباید ادعا شوند
 
-PlatformIO در محیط فعلی موجود نیست؛ بنابراین full firmware build/native PlatformIO test و تست سخت‌افزار واقعی را ادعا نمی‌کنیم. رفتار CAN، TFT/touch، SD، Wi-Fi/BLE، OTA و خودرو باید در CI/برد واقعی تأیید شوند.
+تست واقعی CAN، SPI، TFT، SD، BLE یا OTA روی خودروی واقعی از این گزارش نتیجه نمی‌شود. validation سخت‌افزاری همچنان جداگانه لازم است.
