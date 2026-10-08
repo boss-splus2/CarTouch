@@ -62,7 +62,9 @@ static const char* apPassword() {
 void WiFiManager::_startAP() {
     WiFi.mode(WIFI_AP);
 
-    bool result = WiFi.softAP(WIFI_AP_NAME, apPassword());
+    // apPassword() is always >= 8 characters, so the Arduino default auth mode
+    // is WPA2-PSK (never an open network). Client count is capped.
+    bool result = WiFi.softAP(WIFI_AP_NAME, apPassword(), WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
 
     if (result) {
         _apUp = true;
@@ -82,7 +84,7 @@ void WiFiManager::_startAP() {
 
 void WiFiManager::_beginSta(const char* ssid, const char* pass) {
     WiFi.mode(WIFI_AP_STA);
-    if (!_apUp) _apUp = WiFi.softAP(WIFI_AP_NAME, apPassword());
+    if (!_apUp) _apUp = WiFi.softAP(WIFI_AP_NAME, apPassword(), WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
     WiFi.begin(ssid, pass);
     _connecting = true;
     _connectStart = millis();

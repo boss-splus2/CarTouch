@@ -101,6 +101,25 @@ public:
     }
 };
 
+// DNS-rebinding guard: every request (any method, including the WebSocket
+// upgrade) must carry a Host header that is one of the device's own IP
+// addresses. See ctHostAllowed() in ct_origin.h.
+class HostGuardHandler : public AsyncWebHandler {
+public:
+    bool canHandle(AsyncWebServerRequest* request) const override {
+        if (!request->hasHeader("Host")) return false;
+        const String host = request->host();
+        const String ap  = WiFi.softAPIP().toString();
+        const String sta = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : String("");
+        return !ctHostAllowed(host.c_str(), ap.c_str(), sta.c_str());
+    }
+
+    void handleRequest(AsyncWebServerRequest* request) override {
+        request->send(403, "application/json",
+                      "{\"error\":\"Host header not allowed\"}");
+    }
+};
+
 struct DbcUploadRequestState {
     int httpStatus;
     bool started;
@@ -408,7 +427,7 @@ bool WebServerManager::_isValidSessionToken(const char* token) {
         return false;
     }
 
-    return _sessionToken.equals(token);
+    return ctSecureEquals(_sessionToken.c_str(), String(token));    // constant-time
 }
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -493,6 +512,13 @@ void WebServerManager::_removeClientAuth(uint32_t clientId) {
 void WebServerManager::begin(uint16_t port) {
     Serial.println("[WEB] Starting web server...");
 
+    // Baseline hardening headers on every response (D11).
+    DefaultHeaders::Instance().addHeader("X-Content-Type-Options", "nosniff");
+    DefaultHeaders::Instance().addHeader("X-Frame-Options", "DENY");
+    DefaultHeaders::Instance().addHeader("Content-Security-Policy", "frame-ancestors 'none'");
+    DefaultHeaders::Instance().addHeader("Referrer-Policy", "no-referrer");
+
+    _server.addHandler(new HostGuardHandler());
     _server.addHandler(new CrossOriginGuardHandler());
     _server.addHandler(new HttpBodyLimitHandler());
 
@@ -608,7 +634,9 @@ void WebServerManager::begin(uint16_t port) {
             _sessionTokenIssuedAt = millis();
         }
         String json = "{\"token\":\"" + _sessionToken + "\"}";
-        request->send(200, "application/json", json);
+        AsyncWebServerResponse* tokenResponse = request->beginResponse(200, "application/json", json);
+        tokenResponse->addHeader("Cache-Control", "no-store");
+        request->send(tokenResponse);
     });
 
     _server.on("/api/control", HTTP_POST, [this](AsyncWebServerRequest* request) {

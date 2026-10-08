@@ -16,6 +16,7 @@
 #include "buttons.h"
 
 #include "config.h"
+#include "ct_command_guard.h"
 #include "ct_can_config.h"
 #include "can_manager.h"
 #include "can_service.h"
@@ -1030,34 +1031,24 @@ void processCommand(const char* command) {
         return;
     }
 
-    // While asleep, reject physical-control commands instead of allowing a
-    // Web/TFT event queued before/around wake to trigger immediate CAN TX.
-    // Wake is driven by CAN activity; after wake the user can explicitly
-    // issue a fresh command. Safe configuration/navigation commands remain
-    // available.
-    if (currentMode != MODE_ACTIVE &&
-        strcmp(command, "listen_only") != 0 &&
-        strcmp(command, "vehicle_select") != 0 &&
-        strncmp(command, "vehicle_select_dbc:", 19) != 0 &&
-        strncmp(command, "vehicle_select_custom:", 22) != 0 &&
-        strcmp(command, "toggle_theme") != 0) {
-        Serial.println("[CMD] Device asleep - control command rejected");
-        tftUI.showNotification("Device is asleep - wake it before controlling");
-        return;
-    }
-
-    if (vehicleControl->isListenOnlyForSelectedBus()) {
-        if (strcmp(command, "listen_only") == 0 ||
-            strcmp(command, "vehicle_select") == 0 ||
-            strncmp(command, "vehicle_select_dbc:", 19) == 0 ||
-            strncmp(command, "vehicle_select_custom:", 22) == 0 ||
-            strcmp(command, "toggle_theme") == 0) {
-            handleControlCommand(command);
-        } else {
+    // Single gate for every source (Web, BLE, TFT, Serial `control`): see
+    // ct_command_guard.h. Asleep or Listen-Only => only safe configuration and
+    // navigation commands pass; actuator commands are rejected.
+    switch (ctCommandGate(currentMode == MODE_ACTIVE,
+                          vehicleControl->isListenOnlyForSelectedBus(), command)) {
+        case CT_CMD_REJECT_ASLEEP:
+            Serial.println("[CMD] Device asleep - control command rejected");
+            tftUI.showNotification("Device is asleep - wake it before controlling");
+            return;
+        case CT_CMD_REJECT_LISTEN_ONLY:
             Serial.println("[CMD] Listen-Only mode - control command rejected");
             tftUI.showNotification("Listen-Only mode is active");
-        }
-        return;
+            return;
+        case CT_CMD_REJECT_INVALID:
+            Serial.println("[CMD] Rejected: empty command");
+            return;
+        case CT_CMD_ALLOW:
+            break;
     }
 
     handleControlCommand(command);

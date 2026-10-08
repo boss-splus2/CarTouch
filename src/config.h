@@ -86,13 +86,14 @@
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
 #define WIFI_AP_NAME     "CarTouch"
+#define WIFI_AP_CHANNEL  1               // 2.4 GHz channel of the access point
+#define WIFI_AP_MAX_CLIENTS 4            // Simultaneous Wi-Fi clients on the access point
 // The Wi-Fi access point uses the same password as the web UI and BLE
 // (AppConfig::webPass). There is no separate Wi-Fi password in the source.
 #define WIFI_MAX_RETRY   20
 #define WIFI_TIMEOUT_MS  15000
 
 #define WEB_PORT 80
-#define WS_PORT  81
 
 // ---- THE ONLY PLACE the default login is written -------------------------
 // Used everywhere: web UI, TFT, BLE (AUTH / OTA) and the Wi-Fi AP. It is fixed
