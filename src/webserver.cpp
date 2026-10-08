@@ -102,16 +102,18 @@ public:
 };
 
 // DNS-rebinding guard: every request (any method, including the WebSocket
-// upgrade) must carry a Host header that is one of the device's own IP
-// addresses. See ctHostAllowed() in ct_origin.h.
+// upgrade) must carry a Host header matching a current device IP or the
+// explicitly allowed device name. See ctHostAllowed() in ct_origin.h.
 class HostGuardHandler : public AsyncWebHandler {
 public:
     bool canHandle(AsyncWebServerRequest* request) const override {
-        if (!request->hasHeader("Host")) return false;
+        // Every HTTP/WebSocket request must present a Host header. This
+        // closes the HTTP/1.0-style bypass as well as DNS-rebinding attempts.
+        if (!request->hasHeader("Host")) return true;
         const String host = request->host();
         const String ap  = WiFi.softAPIP().toString();
         const String sta = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : String("");
-        return !ctHostAllowed(host.c_str(), ap.c_str(), sta.c_str());
+        return !ctHostAllowed(host.c_str(), ap.c_str(), sta.c_str(), WIFI_AP_NAME);
     }
 
     void handleRequest(AsyncWebServerRequest* request) override {
@@ -313,9 +315,9 @@ void WebServerManager::invalidateAllSessions() {
 
     // 2. Invalidate every connected WebSocket client's auth state so
     // already-connected clients cannot continue using stale credentials.
-    // authenticated=true could still send control commands, since
-    // _isValidSessionToken is only checked on the initial "auth"
-    // message, not on every subsequent command.
+    // Each post-auth WebSocket message re-validates the session token, so
+    // an authenticated client cannot continue issuing commands after expiry
+    // or password-change invalidation.
     for (int i = 0; i < WS_MAX_CLIENTS; i++) {
         _clientAuth[i].authenticated = false;
         _clientAuth[i].canMonitor = false;
@@ -517,6 +519,8 @@ void WebServerManager::begin(uint16_t port) {
     DefaultHeaders::Instance().addHeader("X-Frame-Options", "DENY");
     DefaultHeaders::Instance().addHeader("Content-Security-Policy", "frame-ancestors 'none'");
     DefaultHeaders::Instance().addHeader("Referrer-Policy", "no-referrer");
+    // Avoid browser/proxy caching of authenticated pages and API responses.
+    DefaultHeaders::Instance().addHeader("Cache-Control", "no-store");
 
     _server.addHandler(new HostGuardHandler());
     _server.addHandler(new CrossOriginGuardHandler());

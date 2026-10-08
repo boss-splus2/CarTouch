@@ -30,13 +30,13 @@ static inline bool ctOriginAllowed(const char* origin, const char* host) {
 // requests still carry the attacker's name in the "Host" header. The device
 // has no hostname of its own, so only its own IP addresses are valid values.
 //
-// host    : raw Host header, may include ":port". NULL/empty = header absent
-//           (HTTP/1.0 tools); a rebinding browser always sends Host, so an
-//           absent header is allowed.
+// host    : raw Host header, may include ":port". NULL/empty = absent and rejected.
 // apIp    : dotted address of the access point (e.g. "192.168.4.1")
 // staIp   : dotted address on the router network, NULL/empty/"0.0.0.0" if none
-static inline bool ctHostAllowed(const char* host, const char* apIp, const char* staIp) {
-    if (!host || host[0] == '\0') return true;
+// allowedName : optional device hostname accepted without DNS lookup (e.g. "CarTouch")
+static inline bool ctHostAllowed(const char* host, const char* apIp, const char* staIp,
+                                 const char* allowedName = nullptr) {
+    if (!host || host[0] == '\0') return false;
     size_t n = strlen(host);
     // strip an optional ":port" (digits only, 1..5)
     const char* colon = strrchr(host, ':');
@@ -50,6 +50,8 @@ static inline bool ctHostAllowed(const char* host, const char* apIp, const char*
     if (apIp && apIp[0] && strlen(apIp) == n && strncasecmp(host, apIp, n) == 0) return true;
     if (staIp && staIp[0] && strcmp(staIp, "0.0.0.0") != 0 &&
         strlen(staIp) == n && strncasecmp(host, staIp, n) == 0) return true;
+    if (allowedName && allowedName[0] && strlen(allowedName) == n &&
+        strncasecmp(host, allowedName, n) == 0) return true;
     return false;
 }
 
