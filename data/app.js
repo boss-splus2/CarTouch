@@ -480,6 +480,47 @@ function setupWifiForm() {
         p.append('pass', document.getElementById('wifi-pass-input').value);
         send(p, 'Connecting... the new IP appears here in about 15 seconds. The CarTouch AP stays on.');
     });
+    const scanBtn = document.getElementById('wifi-scan-btn');
+    const networkList = document.getElementById('wifi-network-list');
+    if (scanBtn && networkList) {
+        scanBtn.addEventListener('click', async function() {
+            scanBtn.disabled = true;
+            msg.textContent = 'Scanning nearby 2.4 GHz networks...';
+            networkList.replaceChildren(new Option('Scanning...', ''));
+            try {
+                let result;
+                for (let attempt = 0; attempt < 12; attempt++) {
+                    const response = await fetch('/api/wifi/scan', { credentials: 'same-origin' });
+                    if (!response.ok) throw new Error('Scan request failed');
+                    result = await response.json();
+                    if (!result.success) throw new Error(result.error || 'Scan failed');
+                    if (!result.scanning) break;
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                networkList.replaceChildren();
+                const networks = result && Array.isArray(result.networks) ? result.networks : [];
+                if (networks.length === 0) {
+                    networkList.add(new Option('No networks found — enter SSID manually', ''));
+                    msg.textContent = 'No visible networks found. Ensure the router broadcasts 2.4 GHz Wi-Fi.';
+                } else {
+                    networkList.add(new Option('Choose a network...', ''));
+                    networks.sort((a, b) => b.rssi - a.rssi).forEach(network => {
+                        const label = `${network.ssid} (${network.rssi} dBm)${network.secure ? ' 🔒' : ' (open)'}`;
+                        networkList.add(new Option(label, network.ssid));
+                    });
+                    msg.textContent = `Found ${networks.length} network(s).`;
+                }
+            } catch (error) {
+                networkList.replaceChildren(new Option('Scan failed — enter SSID manually', ''));
+                msg.textContent = 'Wi-Fi scan failed. Try again or enter the router name manually.';
+            } finally {
+                scanBtn.disabled = false;
+            }
+        });
+        networkList.addEventListener('change', function() {
+            if (networkList.value) document.getElementById('wifi-ssid-input').value = networkList.value;
+        });
+    }
     document.getElementById('wifi-forget-btn').addEventListener('click', function() {
         const p = new URLSearchParams();
         p.append('forget', '1');

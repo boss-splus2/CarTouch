@@ -258,7 +258,14 @@
                     <p id="wifi-ip">IP: 192.168.4.1</p>
                     <p id="wifi-ssid" class="muted"></p>
                     <form id="wifi-form">
-                        <label for="wifi-ssid-input">Join a router (the CarTouch access point stays on)</label>
+                        <label for="wifi-network-list">Available Wi-Fi networks</label>
+                        <div class="form-actions">
+                            <select id="wifi-network-list" aria-label="Available Wi-Fi networks">
+                                <option value="">Tap Scan Wi-Fi to search</option>
+                            </select>
+                            <button type="button" id="wifi-scan-btn">Scan Wi-Fi</button>
+                        </div>
+                        <label for="wifi-ssid-input">Router name (or enter it manually)</label>
                         <input type="text" id="wifi-ssid-input" maxlength="31" placeholder="Router name" autocomplete="off">
                         <input type="password" id="wifi-pass-input" maxlength="63" placeholder="Router password (empty = open)" autocomplete="off">
                         <div class="form-actions">
