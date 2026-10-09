@@ -15,8 +15,8 @@
 //
 // origin / host may be NULL when the header is absent.
 static inline bool ctOriginAllowed(const char* origin, const char* host) {
-    if (!origin || origin[0] == '\0') return true;     // no Origin header
-    if (!host || host[0] == '\0') return false;        // Origin but no Host
+    if (!origin || origin[0] == '\0') return true;  // no Origin header
+    if (!host || host[0] == '\0') return false;     // Origin but no Host
     static const char prefix[] = "http://";
     const size_t prefixLen = sizeof(prefix) - 1;
     if (strncasecmp(origin, prefix, prefixLen) != 0) return false;

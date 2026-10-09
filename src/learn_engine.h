@@ -75,11 +75,11 @@ enum LearnModeState : uint8_t {
 
 struct BaselineEntry {
     uint32_t canId       = 0;
-    bool      isExtended = false;
-    uint8_t   lastData[8]   = {0};
-    uint8_t    length          = 0;
-    uint16_t    seenCount        = 0;           // Times seen during the baseline window
-    bool         valid              = false;
+    bool     isExtended  = false;
+    uint8_t  lastData[8] = {0};
+    uint8_t  length      = 0;
+    uint16_t seenCount   = 0;  // Times seen during the baseline window
+    bool     valid       = false;
 };
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -88,12 +88,12 @@ struct BaselineEntry {
 
 struct LearnCandidate {
     uint32_t canId               = 0;
-    uint8_t   data[8]               = {0};
-    uint8_t length     = 0;
-    bool    isExtended = false;
-    bool         isNewMessage                = false;      // true if this frame ID/format wasn't in the baseline
-    uint16_t      seenCountInAction             = 0;       // Times seen during the action window
-    uint16_t       seenCountInBaseline             = 0;    // For ranking: the more it appeared in baseline, the more likely it's noise/periodic
+    uint8_t  data[8]             = {0};
+    uint8_t  length              = 0;
+    bool     isExtended          = false;
+    bool     isNewMessage        = false;  // true if this frame ID/format wasn't in the baseline
+    uint16_t seenCountInAction   = 0;      // Times seen during the action window
+    uint16_t seenCountInBaseline = 0;      // For ranking: the more it appeared in baseline, the more likely it's noise/periodic
 };
 
 struct LearnEngineSnapshot {
@@ -198,17 +198,17 @@ private:
 
     BaselineEntry _baseline[BASELINE_MAX_IDS];
     uint8_t         _baselineCount;
-    bool            _baselineOverflowed = false;   // more distinct IDs than BASELINE_MAX_IDS were seen
+    bool            _baselineOverflowed = false;  // more distinct IDs than BASELINE_MAX_IDS were seen
 
     LearnCandidate _candidates[CANDIDATE_MAX];
     uint8_t          _candidateCount;
 
     // -- Hardware listen-only enforcement (see CarTouch_SPEC.md) -----------------
-    bool _forcedListenOnly;          // true if beginLearning() had to switch the driver
-    bool _previousListenOnlyMode;    // cfg->listenOnlyMode as it was before the switch
+    bool _forcedListenOnly;        // true if beginLearning() had to switch the driver
+    bool _previousListenOnlyMode;  // cfg->listenOnlyMode as it was before the switch
     bool _rxSubscribed;
-    uint8_t _targetProfileId;        // profile bound to this learn session
-    uint32_t _sessionId;             // increments for every new learn session
+    uint8_t _targetProfileId;      // profile bound to this learn session
+    uint32_t _sessionId;           // increments for every new learn session
 
     /** Finds or adds a baseline table entry. */
     BaselineEntry* _findOrAddBaseline(uint32_t canId, bool isExtended);

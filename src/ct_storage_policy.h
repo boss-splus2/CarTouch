@@ -8,7 +8,7 @@ enum CtStorageLoc    : uint8_t { CT_LOC_NONE = 0, CT_LOC_INTERNAL = 1, CT_LOC_SD
 
 struct CtStorageDecision {
     CtStorageLoc loc;
-    bool fellBack;   // true when the user's explicit choice was unavailable
+    bool fellBack;  // true when the user's explicit choice was unavailable
 };
 
 // Keep this much internal space free before AUTO moves data to the SD card.

@@ -25,7 +25,7 @@ CANManager::CANManager(uint8_t txPin, uint8_t rxPin, uint32_t speed) {
     _rxCount            = 0;
     _errorCount         = 0;
     _lastRxTime         = 0;
-    _currentListenOnly  = false;     // Set for real in begin() / _installAndStart()
+    _currentListenOnly  = false;  // Set for real in begin() / _installAndStart()
 }
 
 bool CANManager::setPins(uint8_t txPin, uint8_t rxPin) {
@@ -52,7 +52,7 @@ bool CANManager::_installAndStart(bool listenOnly) {
         (gpio_num_t)_rxPin,
         listenOnly ? TWAI_MODE_LISTEN_ONLY : TWAI_MODE_NORMAL
     );
-    gConfig.rx_queue_len = 64;    // default (5) drops frames on a busy car bus
+    gConfig.rx_queue_len = 64;  // default (5) drops frames on a busy car bus
 
     twai_timing_config_t tConfig;
     switch (_speed) {
@@ -165,7 +165,7 @@ bool CANManager::begin() {
 
 void CANManager::end() {
     if (_initialized) {
-        _initialized = false;    // Block TX first, whatever happens below
+        _initialized = false;  // Block TX first, whatever happens below
         if (!_stopAndUninstall()) {
             Serial.println("[CAN] Stop/uninstall failed - restart the device to recover CAN");
             _lastError = CAN_ERROR_INIT;
@@ -247,7 +247,7 @@ bool CANManager::sendMessage(const CanMessage& msg, uint32_t timeout) {
         return false;
     }
 
-    twai_message_t twaiMsg = {};    // zero all flag bits (ss/self/dlc_non_comp)
+    twai_message_t twaiMsg = {};  // zero all flag bits (ss/self/dlc_non_comp)
     twaiMsg.identifier        = msg.id;
     twaiMsg.extd              = msg.isExtended ? 1 : 0;
     twaiMsg.rtr               = msg.isRemote ? 1 : 0;
@@ -295,8 +295,8 @@ bool CANManager::receiveMessage(CanMessage& msg, uint32_t timeout) {
         return false;
     }
 
-    twai_message_t twaiMsg = {};    // zeroed: a remote (RTR) frame carries no data bytes
-    esp_err_t err = twai_receive(&twaiMsg, pdMS_TO_TICKS(timeout));
+    twai_message_t twaiMsg = {};  // zeroed: a remote (RTR) frame carries no data bytes
+    esp_err_t      err     = twai_receive(&twaiMsg, pdMS_TO_TICKS(timeout));
 
     if (err == ESP_OK) {
         msg.id          = twaiMsg.identifier;
@@ -360,7 +360,7 @@ bool CANManager::isActive() {
     if (!_initialized) return false;
 
     twai_status_info_t status;
-    if (twai_get_status_info(&status) != ESP_OK) return false;    // driver gone
+    if (twai_get_status_info(&status) != ESP_OK) return false;  // driver gone
     return (status.state != TWAI_STATE_STOPPED &&
             status.state != TWAI_STATE_BUS_OFF);
 }

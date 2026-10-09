@@ -38,9 +38,9 @@ public:
     }
 
     bool initMutex();
-    bool lockWrite();          // acquire for read or write; true = success
-    bool unlockWrite();        // release; true = success
-    bool tryLockWrite();       // non-blocking acquire for async contexts
+    bool lockWrite();     // acquire for read or write; true = success
+    bool unlockWrite();   // release; true = success
+    bool tryLockWrite();  // non-blocking acquire for async contexts
 
     // Conflict detection: does a proposed SD CS pin collide with Button GPIO?
     // Returns true if no conflict; false if unsafe.

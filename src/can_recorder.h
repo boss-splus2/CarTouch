@@ -9,9 +9,9 @@
 
 class CanRecorder {
 public:
-    static const uint8_t BUS_MASK_CAN1 = 0x01;
-    static const uint8_t BUS_MASK_CAN2 = 0x02;
-    static const uint8_t BUS_MASK_BOTH = BUS_MASK_CAN1 | BUS_MASK_CAN2;
+    static const uint8_t  BUS_MASK_CAN1       = 0x01;
+    static const uint8_t  BUS_MASK_CAN2       = 0x02;
+    static const uint8_t  BUS_MASK_BOTH       = BUS_MASK_CAN1 | BUS_MASK_CAN2;
     static const uint32_t MAX_RECORDING_BYTES = 256u * 1024u;
     static const uint16_t MAX_RECORDING_FILES = 100;
 
@@ -34,7 +34,7 @@ public:
     const char* getNotice() const { return _notice.c_str(); }
 
 private:
-    static const uint32_t MIN_FREE_BYTES = 1024;
+    static const uint32_t MIN_FREE_BYTES      = 1024;
     static const uint32_t FREE_SPACE_CHECK_MS = 1000;
 
     CANService& _canService;

@@ -7,11 +7,11 @@
 // (command login and OTA start). One shared counter means an attacker cannot
 // get 5 guesses on each path per minute: all wrong guesses add up.
 
-#define CT_LOGIN_MAX_FAILS  5u
-#define CT_LOGIN_LOCK_MS    60000u
+#define CT_LOGIN_MAX_FAILS 5u
+#define CT_LOGIN_LOCK_MS   60000u
 
 struct CtLoginLock {
-    uint8_t  fails = 0;
+    uint8_t  fails     = 0;
     uint32_t lockUntil = 0;
     bool     locked    = false;
 };

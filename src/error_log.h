@@ -39,12 +39,12 @@
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 enum LogCategory : uint8_t {
-    LOG_CAT_SYSTEM = 0,    // Boot, watchdog, heap
-    LOG_CAT_CAN    = 1,    // CAN/TWAI driver
-    LOG_CAT_OBD2   = 2,    // OBD-II PID reads
-    LOG_CAT_WIFI   = 3,    // WiFi connect/disconnect
-    LOG_CAT_WEB    = 4,    // Web server, auth
-    LOG_CAT_LEARN  = 5     // Learn Mode
+    LOG_CAT_SYSTEM = 0,  // Boot, watchdog, heap
+    LOG_CAT_CAN    = 1,  // CAN/TWAI driver
+    LOG_CAT_OBD2   = 2,  // OBD-II PID reads
+    LOG_CAT_WIFI   = 3,  // WiFi connect/disconnect
+    LOG_CAT_WEB    = 4,  // Web server, auth
+    LOG_CAT_LEARN  = 5   // Learn Mode
 };
 
 enum LogSeverity : uint8_t {
@@ -58,9 +58,9 @@ enum LogSeverity : uint8_t {
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 struct LogEntry {
-    uint32_t    timestamp = 0;                // millis() at the time of logging
-    LogCategory category = LOG_CAT_SYSTEM;
-    LogSeverity severity = LOG_INFO;
+    uint32_t    timestamp   = 0;  // millis() at the time of logging
+    LogCategory category    = LOG_CAT_SYSTEM;
+    LogSeverity severity    = LOG_INFO;
     char        message[72] = {0};
 };
 
@@ -69,7 +69,7 @@ struct LogEntry {
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 struct ErrorCounters {
-    uint32_t magic              = 0xE4106C01;    // Validity marker for the NVS blob
+    uint32_t magic               = 0xE4106C01;  // Validity marker for the NVS blob
     uint32_t bootCount           = 0;
     uint32_t canTxErrors         = 0;
     uint32_t canRxErrors         = 0;
@@ -81,7 +81,7 @@ struct ErrorCounters {
 };
 
 #define ERRORLOG_MAX_ENTRIES          40
-#define ERRORLOG_NVS_SAVE_INTERVAL_MS (5UL * 60UL * 1000UL)    // 5 minutes
+#define ERRORLOG_NVS_SAVE_INTERVAL_MS (5UL * 60UL * 1000UL)  // 5 minutes
 
 class ErrorLog {
 public:
@@ -119,8 +119,8 @@ public:
 
 private:
     LogEntry       _entries[ERRORLOG_MAX_ENTRIES];
-    uint8_t        _count;                            // Number of valid entries (<= ERRORLOG_MAX_ENTRIES)
-    uint8_t        _writeIndex;                       // Next slot to write (wraps)
+    uint8_t        _count;       // Number of valid entries (<= ERRORLOG_MAX_ENTRIES)
+    uint8_t        _writeIndex;  // Next slot to write (wraps)
 
     ErrorCounters  _counters;
     bool           _countersDirty;

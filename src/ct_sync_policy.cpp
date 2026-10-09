@@ -5,6 +5,11 @@
 #include "ct_sync_policy.h"
 
 #ifdef UNIT_TEST
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Native test stubs
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // Stub implementation for unit tests
 bool CtSyncPolicy::validateSdCsVsButtons(int proposedCs, const int buttonPins[5]) {
     if (proposedCs < 0) return true;
@@ -24,6 +29,11 @@ bool CtSyncPolicy::validateButtonsVsGivenSdCs(const int proposedPins[5], int giv
     return true;
 }
 #else
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ FreeRTOS implementation
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // Full implementation with FreeRTOS
 #include <Arduino.h>
 

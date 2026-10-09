@@ -10,6 +10,10 @@
 static const char CAN_RECORD_HEADER[] =
     "timestamp_ms,bus,id,extended,remote,dlc,data_hex\n";
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Setup
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 CanRecorder::CanRecorder(CANService& canService)
     : _canService(canService), _storageAvailable(false), _recording(false),
       _busMask(0), _frameCount(0), _droppedFrameCount(0),
@@ -19,6 +23,10 @@ void CanRecorder::setStorageAvailable(bool available) {
     _storageAvailable = available;
     if (!available && _recording) _fail("Storage became unavailable");
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Recording control
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool CanRecorder::start(uint8_t busMask) {
     if (_recording) {
@@ -158,6 +166,10 @@ bool CanRecorder::deleteRecording(const char* fileName) {
     return true;
 }
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Storage accounting
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 uint64_t CanRecorder::_totalBytes() const {
     return _loc == CT_LOC_SD ? SD.totalBytes() : SPIFFS.totalBytes();
 }
@@ -167,6 +179,10 @@ uint64_t CanRecorder::_freeBytes() const {
     const uint64_t used = _loc == CT_LOC_SD ? SD.usedBytes() : SPIFFS.usedBytes();
     return used >= total ? 0 : total - used;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Update loop and file writing
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 void CanRecorder::update() {
     if (!_recording) return;

@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Pin and bitrate checks
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 static inline bool ctCanPinsConflictFree(uint8_t can0Tx, uint8_t can0Rx,
                                          uint8_t can1Cs, uint8_t can1Int) {
     return can0Tx != can0Rx && can1Cs != can1Int &&
@@ -29,6 +33,10 @@ static inline uint8_t ctSanitizeBusIndex(uint8_t value) {
     return value <= 1u ? value : 0u;
 }
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Bit timing
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // MCP2515 bit timing decoder (CNF1/CNF2/CNF3) used to cross-check the
 // library's timing table. Returns false for BTLMODE=0 layouts it cannot
 // describe. bitrate in bit/s, samplePointPermille e.g. 625 = 62.5 %.
@@ -42,9 +50,9 @@ static inline bool ctMcp2515DecodeTiming(uint32_t oscHz, uint8_t cnf1, uint8_t c
     const uint32_t phseg1  = ((cnf2 >> 3) & 0x07u) + 1u;
     const bool     btl     = (cnf2 & 0x80u) != 0;
     const uint32_t phseg2  = (cnf3 & 0x07u) + 1u;
-    if (!btl) return false;                       // PS2 would come from PS1/IPT
+    if (!btl) return false;                    // PS2 would come from PS1/IPT
     const uint32_t totalTq = 1u + prseg + phseg1 + phseg2;
-    const uint32_t tqDiv   = 2u * (brp + 1u);     // TQ = tqDiv / Fosc
+    const uint32_t tqDiv   = 2u * (brp + 1u);  // TQ = tqDiv / Fosc
     bitrate = oscHz / (tqDiv * totalTq);
     samplePointPermille = ((1u + prseg + phseg1) * 1000u) / totalTq;
     sjwTq = (uint8_t)(((cnf1 >> 6) & 0x03u) + 1u);
@@ -56,16 +64,20 @@ static inline bool ctPartitionFitsFlash(uint32_t flashBytes, uint32_t partitionE
 }
 
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Link state
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // ---- Link state: "connected" only with real traffic -----------------------
 // A started driver proves nothing about the wiring. A channel counts as
 // connected (CT_LINK_TRAFFIC) only if a frame was really received within
 // `timeoutMs`; started but silent is CT_LINK_NO_TRAFFIC (could be a parked
 // car or a missing connection - the firmware cannot tell which).
 enum CtCanLinkState : uint8_t {
-    CT_LINK_DOWN = 0,        // driver not running
-    CT_LINK_BUS_OFF,         // controller is in Bus-Off
-    CT_LINK_NO_TRAFFIC,      // running, but no frame seen recently
-    CT_LINK_TRAFFIC          // running and frames received recently
+    CT_LINK_DOWN = 0,    // driver not running
+    CT_LINK_BUS_OFF,     // controller is in Bus-Off
+    CT_LINK_NO_TRAFFIC,  // running, but no frame seen recently
+    CT_LINK_TRAFFIC      // running and frames received recently
 };
 
 // lastRxMs == 0 means "never received". Wrap-safe (unsigned subtraction).

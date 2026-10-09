@@ -157,7 +157,7 @@ bool loadConfig() {
     err = nvs_get_blob(nvsHandle, "config", &currentConfig, &configSize);
     nvs_close(nvsHandle);
 
-    const bool legacyConfig = err == ESP_OK && configSize == legacyConfigSize;
+    const bool legacyConfig    = err == ESP_OK && configSize == legacyConfigSize;
     const bool priorCan2Config = err == ESP_OK && configSize == priorCan2ConfigSize;
     // NOTE: with the current layout priorObdConfigSize == sizeof(AppConfig),
     // so a size match alone cannot identify an older blob. It is only a
@@ -378,7 +378,7 @@ void setDefaultConfig() {
     // Factory Reset must also clear the separate touch-skip flag so the
     // touch wizard is offered again.
     setTouchCalibrationSkipped(false);
-    resetStorageChoices();   // storage choices back to AUTO (SD CS pin is kept)
+    resetStorageChoices();  // storage choices back to AUTO (SD CS pin is kept)
     if (!buttons.resetToDefaults()) {
         Serial.println("[NVS] Button defaults reset failed");
     }

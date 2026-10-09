@@ -8,13 +8,13 @@
 // Without this, a PID that never answers (unsupported, ignition off, bus
 // problem) kept showing its initial 0 or its last number as if it were live.
 
-#define CT_VD_RPM       0x01
-#define CT_VD_SPEED     0x02
-#define CT_VD_COOLANT   0x04
-#define CT_VD_THROTTLE  0x08
-#define CT_VD_FUEL      0x10
-#define CT_VD_RUNTIME   0x20
-#define CT_VD_BATTERY   0x40
+#define CT_VD_RPM      0x01
+#define CT_VD_SPEED    0x02
+#define CT_VD_COOLANT  0x04
+#define CT_VD_THROTTLE 0x08
+#define CT_VD_FUEL     0x10
+#define CT_VD_RUNTIME  0x20
+#define CT_VD_BATTERY  0x40
 
 // A full poll round is about 1.5 s in the worst case (7 PIDs, 200 ms timeout
 // each, plus spacing), so 5 s means "missed several rounds in a row".

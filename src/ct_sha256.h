@@ -13,6 +13,10 @@ struct CtSha256 {
     uint64_t totalBytes;
 };
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ SHA-256 core
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 static inline uint32_t ctSha256Rotr(uint32_t x, uint32_t n) { return (x >> n) | (x << (32u - n)); }
 
 static inline void ctSha256Block(CtSha256& c, const uint8_t* p) {
@@ -63,6 +67,10 @@ static inline void ctSha256Update(CtSha256& c, const uint8_t* data, size_t len) 
         if (c.bufLen == 64u) { ctSha256Block(c, c.buf); c.bufLen = 0; }
     }
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Hex helpers
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 static inline bool ctSha256HexValid(const char* digest) {
     if (!digest || strlen(digest) != 64) return false;

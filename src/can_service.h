@@ -8,6 +8,10 @@
 #include <freertos/portmacro.h>
 #endif
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Bus and consumer types
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 enum CanBusId : uint8_t {
     CAN_BUS_1 = 0,
     CAN_BUS_2 = 1,
@@ -29,6 +33,10 @@ struct CanRxFrame {
     CanMessage message;
     uint32_t receivedAtMs;
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ CANService
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 class CANService : public CanInterface {
 public:

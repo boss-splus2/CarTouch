@@ -12,6 +12,10 @@
 #include "ct_can_record.h"
 #include "ct_time.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ BLE globals
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 namespace {
 static const char* BLE_SERVICE_UUID  = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 static const char* BLE_STATUS_UUID   = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
@@ -22,12 +26,16 @@ BLECharacteristic* gStatus = nullptr;
 BLECharacteristic* gCommand = nullptr;
 BLECharacteristic* gData = nullptr;
 BLEServer* gServer = nullptr;
-CtOtaHeaderCheck gOtaHeader;    // header collected across BLE writes
+CtOtaHeaderCheck gOtaHeader;  // header collected across BLE writes
 CtSha256 gOtaSha256;
 char gOtaExpectedSha256[65] = {};
 bool gOtaHashMismatch = false;
 BLEManager* gManager = nullptr;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ GATT callbacks
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 class BLEManager::ServerCallbacks : public NimBLEServerCallbacks {
     void onConnect(NimBLEServer*, NimBLEConnInfo& info) override {
@@ -127,6 +135,10 @@ BLEManager::BLEManager()
       _otaReceived(0), _rebootAt(0), _deviceName("CarTouch"),
       _commandCallback(nullptr) {}
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Lifecycle and status
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 void BLEManager::setCommandCallback(BLECommandCallback callback) {
     _commandCallback = callback;
 }
@@ -150,7 +162,7 @@ bool BLEManager::begin() {
     // Encrypt BLE links. Pairing uses Just Works because the device has no
     // dedicated keyboard/display for a pairing PIN; the OTA command still
     // requires the current Web password at the application layer.
-    NimBLEDevice::setSecurityAuth(true, false, true);    // bonding, no MITM (Just Works), LE Secure Connections
+    NimBLEDevice::setSecurityAuth(true, false, true);  // bonding, no MITM (Just Works), LE Secure Connections
     NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
 
     gManager = this;
@@ -198,6 +210,10 @@ void BLEManager::_sendStatus(const char* status, uint16_t connHandle) {
     if (!gStatus || !_connected || connHandle == BLE_HS_CONN_HANDLE_NONE) return;
     gStatus->notify(reinterpret_cast<const uint8_t*>(status), strlen(status), connHandle);
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Command handling
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool BLEManager::_authenticateCommand(const String& password, uint16_t connHandle) {
     if (isUsingDefaultPassword()) return false;
@@ -415,6 +431,10 @@ void BLEManager::_handleCommand(const String& command, uint16_t connHandle) {
     _sendStatus("UNKNOWN_COMMAND", connHandle);
 }
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ OTA over BLE
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 bool BLEManager::_startOta(uint32_t size, const String& password,
                            const String& expectedSha256,
                            uint16_t connHandle) {
@@ -429,13 +449,13 @@ bool BLEManager::_startOta(uint32_t size, const String& password,
     gOtaHashMismatch = false;
 
     const AppConfig* cfg = getConfig();
-    if (isUsingDefaultPassword()) {    // never allow OTA with the public default
+    if (isUsingDefaultPassword()) {  // never allow OTA with the public default
         _otaError = true;
         ctOtaLock().release(CT_OTA_OWNER_BLE);
         return false;
     }
     if (ctLoginLocked(_authLock, millis())) {
-        _otaError = true;    // locked out after repeated failures
+        _otaError = true;  // locked out after repeated failures
         ctOtaLock().release(CT_OTA_OWNER_BLE);
         return false;
     }
@@ -532,6 +552,10 @@ bool BLEManager::_finishOta() {
     ctOtaLock().release(CT_OTA_OWNER_BLE);
     return true;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Accessors
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool BLEManager::isEnabled() const { return _started; }
 bool BLEManager::isConnected() const { return _connected; }

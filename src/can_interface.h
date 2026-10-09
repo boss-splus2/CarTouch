@@ -5,6 +5,10 @@
 
 static const uint32_t CAN_INTERFACE_TIMEOUT_MS = 50;
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Data types
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 struct CanMessage {
     uint32_t id;
     uint8_t data[8];
@@ -39,6 +43,10 @@ enum CanError : uint8_t {
     CAN_ERROR_BUS_OFF  = 4,
     CAN_ERROR_TIMEOUT  = 5
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ CanInterface
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 class CanInterface {
 public:

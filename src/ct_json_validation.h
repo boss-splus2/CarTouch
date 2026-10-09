@@ -21,13 +21,13 @@ static inline bool ctLabelIsSafe(const char* label) {
 }
 
 struct CtJsonCommandFields {
-    const char* label = nullptr;
+    const char* label       = nullptr;
     const char* displayName = nullptr;
-    uint32_t canId = 0;
-    bool extended = false;
-    uint8_t length = 0;
-    uint8_t data[8] = {0};
-    int source = 2;
+    uint32_t    canId       = 0;
+    bool        extended    = false;
+    uint8_t     length      = 0;
+    uint8_t     data[8]     = {0};
+    int         source      = 2;
 };
 
 static inline bool ctValidateImportedCommand(JsonObjectConst item, CtJsonCommandFields& out) {
@@ -38,12 +38,12 @@ static inline bool ctValidateImportedCommand(JsonObjectConst item, CtJsonCommand
     if (!item["status"].is<const char*>()) return false;
     if (!item["data"].is<JsonArrayConst>()) return false;
 
-    const char* label = item["label"].as<const char*>();
+    const char* label   = item["label"].as<const char*>();
     const char* display = item["displayName"].as<const char*>();
-    int canId = item["canId"].as<int>();
-    int length = item["length"].as<int>();
-    int source = item["source"].as<int>();
-    const char* status = item["status"].as<const char*>();
+    int         canId   = item["canId"].as<int>();
+    int         length  = item["length"].as<int>();
+    int         source  = item["source"].as<int>();
+    const char* status  = item["status"].as<const char*>();
 
     if (!label || !display || !status || strlen(label) == 0 || strlen(label) >= 32) return false;
     if (!ctLabelIsSafe(label)) return false;

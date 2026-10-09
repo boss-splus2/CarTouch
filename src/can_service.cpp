@@ -8,6 +8,10 @@
 #define CT_RX_UNLOCK() do {} while (0)
 #endif
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Construction and bus lookup
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 CANService::CANService(CanInterface& can1, CanInterface& can2)
     : _can1(can1), _can2(can2) {}
 
@@ -22,6 +26,10 @@ const CanInterface* CANService::_get(CanBusId bus) const {
     if (bus == CAN_BUS_2) return &_can2;
     return nullptr;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Lifecycle
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool CANService::begin() {
     const bool can1Ready = begin(CAN_BUS_1);
@@ -43,6 +51,10 @@ void CANService::end(CanBusId bus) {
     CanInterface* interface = _get(bus);
     if (interface) interface->end();
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Send and receive
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool CANService::sendMessage(const CanMessage& msg, uint32_t timeout) {
     return _can1.sendMessage(msg, timeout);
@@ -70,6 +82,10 @@ bool CANService::receiveMessageNonBlocking(CanBusId bus, CanMessage& msg) {
     CanInterface* interface = _get(bus);
     return interface && interface->receiveMessageNonBlocking(msg);
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ RX subscription and pump
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool CANService::_validRxTarget(CanBusId bus, CanRxConsumer consumer) const {
     return (bus == CAN_BUS_1 || bus == CAN_BUS_2) &&
@@ -175,6 +191,10 @@ void CANService::flushRxQueue(CanBusId bus) {
     CanInterface* interface = _get(bus);
     if (interface) interface->flushRxQueue();
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Status and diagnostics
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool CANService::isActive() {
     return _can1.isActive();

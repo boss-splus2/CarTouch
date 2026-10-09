@@ -12,9 +12,9 @@
 
 enum CtTxGuardResult : uint8_t {
     CT_TX_OK = 0,
-    CT_TX_ERR_NOT_INITIALIZED,    // driver not installed/started
-    CT_TX_ERR_LISTEN_ONLY,        // TWAI actually running in Listen-Only
-    CT_TX_ERR_LENGTH              // DLC > 8
+    CT_TX_ERR_NOT_INITIALIZED,  // driver not installed/started
+    CT_TX_ERR_LISTEN_ONLY,      // TWAI actually running in Listen-Only
+    CT_TX_ERR_LENGTH            // DLC > 8
 };
 
 /**

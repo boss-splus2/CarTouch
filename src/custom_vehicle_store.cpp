@@ -17,9 +17,9 @@
 // as "<path>.tmp" / "<path>.bak" by _atomicWriteJSON(), so the *longest* derived
 // name must still fit. (The legacy "profile_N.json" naming made ".tmp"/".bak"
 // 35 characters long, so every profile save failed on real hardware.)
-#define CVS_PROFILE_PREFIX         "/custom_vehicles/p"
-#define CVS_LEGACY_PROFILE_PREFIX  "/custom_vehicles/profile_"
-#define CVS_SPIFFS_MAX_PATH        31
+#define CVS_PROFILE_PREFIX        "/custom_vehicles/p"
+#define CVS_LEGACY_PROFILE_PREFIX "/custom_vehicles/profile_"
+#define CVS_SPIFFS_MAX_PATH       31
 
 static_assert(MAX_CUSTOM_VEHICLES <= 10,
               "Profile file names assume a single-digit slot index");
@@ -49,9 +49,9 @@ CustomVehicleStore::CustomVehicleStore() {
 // boot code did ~60 such lookups and took ~17 s. Instead, list the folder ONCE
 // and remember which of this store's files really exist.
 struct CvsBootScan {
-    bool legacy[MAX_CUSTOM_VEHICLES];   // profile_N.json (old naming)
+    bool legacy[MAX_CUSTOM_VEHICLES];        // profile_N.json (old naming)
     bool leftover[MAX_CUSTOM_VEHICLES + 1];  // slot N (last = index): .tmp or .bak present
-    bool anyFile;                       // any store file at all
+    bool anyFile;                            // any store file at all
 };
 
 static bool cvsBaseNameIs(const char* base, const char* prefix, uint8_t slot, const char* suffix) {
@@ -69,9 +69,9 @@ static bool cvsScanFiles(CvsBootScan& scan) {
 
     File entry = root.openNextFile();
     while (entry) {
-        const char* full = entry.name();
+        const char* full  = entry.name();
         const char* slash = strrchr(full, '/');
-        const char* base = slash ? slash + 1 : full;
+        const char* base  = slash ? slash + 1 : full;
 
         if (strcmp(base, "index.json") == 0) {
             scan.anyFile = true;
@@ -323,8 +323,8 @@ bool CustomVehicleStore::_jsonToProfile(JsonDocument& doc, CustomVehicleProfile&
         Serial.println("[CVS] Reject import: 'dbcFile' must be a string");
         return false;
     }
-    const char* dbcFileStr = dbcFileValue | "";
-    int         yearVal  = doc["year"]  | 0;
+    const char* dbcFileStr  = dbcFileValue | "";
+    int         yearVal     = doc["year"]  | 0;
     uint32_t    revisionVal = doc["revision"] | 0;
 
     if (strict) {

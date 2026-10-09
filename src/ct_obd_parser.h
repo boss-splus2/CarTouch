@@ -4,20 +4,28 @@
 #include <stdint.h>
 #include <string.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Data types
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 struct CtObdSingleFrame {
-    uint8_t payloadLength = 0; // bytes after PCI
-    uint8_t service = 0;
-    uint8_t pid = 0;
-    uint8_t dataOffset = 0;
+    uint8_t payloadLength = 0;  // bytes after PCI
+    uint8_t service       = 0;
+    uint8_t pid           = 0;
+    uint8_t dataOffset    = 0;
 };
 
 struct CtIsoTpReassembly {
-    uint32_t canId = 0;
-    uint16_t totalLength = 0;
+    uint32_t canId          = 0;
+    uint16_t totalLength    = 0;
     uint16_t receivedLength = 0;
-    uint8_t nextSequence = 1;
-    bool isExtended = false;
+    uint8_t  nextSequence   = 1;
+    bool     isExtended     = false;
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ ISO-TP reassembly
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 static inline bool ctIsoTpBegin(const uint8_t* frame, uint8_t dlc,
                                 uint32_t canId, bool isExtended,
@@ -68,6 +76,10 @@ static inline bool ctIsObdReplyFrame(uint32_t canId, bool isExtended, bool isRem
     return !isExtended && !isRemote && canId >= 0x7E8u && canId <= 0x7EFu;
 }
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ OBD response parsing
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // Validates an ISO-TP single-frame OBD response. The frame layout is:
 // [PCI length][service][optional PID][payload...][padding].
 // expectedPid may be 0xFF when no PID is expected (e.g. Mode 03 DTC).
@@ -76,7 +88,7 @@ static inline bool ctParseObdSingleFrame(const uint8_t* frame, uint8_t dlc,
                                          CtObdSingleFrame& out) {
     if (!frame || dlc < 2) return false;
     const uint8_t pci = frame[0];
-    if ((pci & 0xF0u) != 0x00u) return false; // single-frame only
+    if ((pci & 0xF0u) != 0x00u) return false;  // single-frame only
     const uint8_t payloadLen = (uint8_t)(pci & 0x0Fu);
     if (payloadLen == 0 || payloadLen > 7) return false;
     if ((uint16_t)payloadLen + 1u > dlc) return false;

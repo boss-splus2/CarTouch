@@ -7,13 +7,21 @@
 #include <stddef.h>
 #include <string.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Limits
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // Built-in profiles keep the path in char dbcFileName[32]: "/dbc/" (5) + name (<=26) + NUL.
-#define CT_DBC_DIR            "/dbc/"
-#define CT_DBC_NAME_MAX       26u
-#define CT_DBC_MAX_BYTES      409600u   // largest accepted upload (400 KB)
+#define CT_DBC_DIR       "/dbc/"
+#define CT_DBC_NAME_MAX  26u
+#define CT_DBC_MAX_BYTES 409600u  // largest accepted upload (400 KB)
 // Must equal MAX_DBC_MESSAGES in vehicle_db.h (the loader silently skips the rest).
-#define CT_DBC_MAX_MESSAGES   400u
-#define CT_DBC_RESERVE_BYTES  32768u    // free space that must remain after an upload
+#define CT_DBC_MAX_MESSAGES  400u
+#define CT_DBC_RESERVE_BYTES 32768u  // free space that must remain after an upload
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Validation results and rules
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 enum CtDbcResult : uint8_t {
     CT_DBC_OK = 0,
@@ -21,7 +29,7 @@ enum CtDbcResult : uint8_t {
     CT_DBC_EMPTY,
     CT_DBC_TOO_BIG,
     CT_DBC_NO_SPACE,
-    CT_DBC_BAD_CONTENT,       // control/binary bytes: not a text DBC
+    CT_DBC_BAD_CONTENT,  // control/binary bytes: not a text DBC
     CT_DBC_NO_MESSAGES,
     CT_DBC_TOO_MANY_MESSAGES
 };

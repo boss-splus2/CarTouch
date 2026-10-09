@@ -75,16 +75,16 @@ private:
     uint8_t  _txPin;
     uint8_t  _rxPin;
     uint32_t _speed;
-    volatile bool _initialized;                // read from several tasks (Web/BLE/loop)
+    volatile bool _initialized;  // read from several tasks (Web/BLE/loop)
     CanError _lastError;
     uint32_t _txCount;
     uint32_t _rxCount;
     uint32_t _errorCount;
     uint32_t _lastRxTime;
 
-    volatile bool _currentListenOnly;                   // Mode the driver is actually running in
-    bool _installAndStart(bool listenOnly);    // Shared by begin() and reconfigureMode()
-    bool _stopAndUninstall();                  // Safe from RUNNING / BUS_OFF / RECOVERING states
+    volatile bool _currentListenOnly;        // Mode the driver is actually running in
+    bool _installAndStart(bool listenOnly);  // Shared by begin() and reconfigureMode()
+    bool _stopAndUninstall();                // Safe from RUNNING / BUS_OFF / RECOVERING states
 };
 
 #endif    // CAN_MANAGER_H

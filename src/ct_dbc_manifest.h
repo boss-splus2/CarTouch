@@ -51,7 +51,7 @@ static inline bool ctDbcJsonStr(const char* line, const char* key, char* out, si
         out[n] = p[n];
         ++n;
     }
-    if (p[n] != '"') return false;      // unterminated (truncated line)
+    if (p[n] != '"') return false;  // unterminated (truncated line)
     out[n] = '\0';
     return true;
 }
@@ -104,7 +104,7 @@ static inline bool ctDbcManifestParseLine(const char* line, CtDbcManifestEntry& 
         !ctDbcJsonStrOptional(line, "license", "unverified", e.license, sizeof(e.license))) return false;
     const char* end = line + strlen(line);
     while (end > line && (end[-1] == '\n' || end[-1] == '\r' || end[-1] == ' ' || end[-1] == ',')) --end;
-    return end > line && end[-1] == '}';    // line must be a complete object
+    return end > line && end[-1] == '}';  // line must be a complete object
 }
 
 // Entry -> one manifest line (no trailing newline or comma). Returns the length, 0 on failure.

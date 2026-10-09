@@ -5,6 +5,11 @@
 #include "ct_sync_policy.h"
 
 Buttons buttons;
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Constants and helpers
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 static const uint16_t ADC_TOL = 80;
 
 static void inUsePins(int* out, size_t& n) {
@@ -15,6 +20,10 @@ static void inUsePins(int* out, size_t& n) {
     n = sizeof(base) / sizeof(base[0]);
     for (size_t i = 0; i < n; i++) out[i] = base[i];
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Setup and polling
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 void Buttons::begin() {
     nvs_handle_t h;
@@ -83,6 +92,10 @@ bool Buttons::poll(CtKeyEvent& ev) {
     _qCount--;
     return true;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Configuration
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool Buttons::_save() {
     nvs_handle_t h;

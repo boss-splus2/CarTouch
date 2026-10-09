@@ -3,16 +3,24 @@
 // short/long press. Native-testable.
 #include <stdint.h>
 #include <stddef.h>
-#include "ct_storage_policy.h"   // ctSdCsPinAllowed (generic reserved-pin check)
+#include "ct_storage_policy.h"  // ctSdCsPinAllowed (generic reserved-pin check)
 
 enum CtKey : uint8_t { CT_KEY_NONE = 0, CT_KEY_UP, CT_KEY_DOWN, CT_KEY_LEFT, CT_KEY_RIGHT, CT_KEY_OK,
                        CT_KEY_INVALID = 0xFE };  // INVALID: ADC value matches no key and is not idle
 enum CtKeyEventType : uint8_t { CT_EV_NONE = 0, CT_EV_PRESS, CT_EV_SHORT, CT_EV_LONG };
 
-#define CT_ADC_MAX 4095
-#define CT_ADC_IDLE_MIN 3900   // at/above this the ladder is idle (nothing pressed)
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Constants
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
+#define CT_ADC_MAX         4095
+#define CT_ADC_IDLE_MIN    3900  // at/above this the ladder is idle (nothing pressed)
 #define CT_KEY_DEBOUNCE_MS 30
-#define CT_KEY_LONG_MS 800
+#define CT_KEY_LONG_MS     800
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Key classification
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // ladder[0..4] = raw ADC value of UP,DOWN,LEFT,RIGHT,OK. A value matches when
 // within +/- tol. Values above 4095 are never valid.
@@ -45,11 +53,11 @@ static inline bool ctAdcPinAllowed(int pin, const int* inUse, size_t n) {
 }
 
 struct CtKeyState {
-    CtKey stable = CT_KEY_NONE;     // debounced key currently held
-    CtKey candidate = CT_KEY_NONE;
+    CtKey    stable         = CT_KEY_NONE;  // debounced key currently held
+    CtKey    candidate      = CT_KEY_NONE;
     uint32_t candidateSince = 0;
-    uint32_t pressedSince = 0;
-    bool longSent = false;
+    uint32_t pressedSince   = 0;
+    bool     longSent       = false;
 };
 
 struct CtKeyEvent { CtKey key; CtKeyEventType type; };

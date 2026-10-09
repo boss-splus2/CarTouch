@@ -322,7 +322,7 @@ void LearnEngine::update() {
         CanRxFrame rxFrame;
         while (_can.receiveRx(_bus, CAN_RX_LEARN, rxFrame)) {
             msg = rxFrame.message;
-            if (msg.isRemote) continue;    // RTR frames carry no data and cannot be learned as commands
+            if (msg.isRemote) continue;  // RTR frames carry no data and cannot be learned as commands
             BaselineEntry* entry = _findOrAddBaseline(msg.id, msg.isExtended);
             if (entry) {
                 entry->length = msg.length;

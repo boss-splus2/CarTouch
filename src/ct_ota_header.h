@@ -14,25 +14,25 @@
 #include <stdint.h>
 #include <string.h>
 
-#define CT_OTA_HEADER_LEN     24
-#define CT_OTA_IMAGE_MAGIC    0xE9
-#define CT_OTA_CHIP_ESP32S3   0x0009
-#define CT_OTA_MAX_SEGMENTS   16
+#define CT_OTA_HEADER_LEN   24
+#define CT_OTA_IMAGE_MAGIC  0xE9
+#define CT_OTA_CHIP_ESP32S3 0x0009
+#define CT_OTA_MAX_SEGMENTS 16
 
 enum CtOtaHdrResult : uint8_t {
-    CT_OTA_HDR_NEED_MORE = 0,    // fewer than 24 bytes seen so far
+    CT_OTA_HDR_NEED_MORE = 0,  // fewer than 24 bytes seen so far
     CT_OTA_HDR_OK,
     CT_OTA_HDR_BAD_MAGIC,
     CT_OTA_HDR_BAD_SEGMENTS,
     CT_OTA_HDR_WRONG_CHIP,
-    CT_OTA_HDR_FLASH_TOO_BIG     // built for more flash than this device has
+    CT_OTA_HDR_FLASH_TOO_BIG   // built for more flash than this device has
 };
 
 // Collects the header across chunks (BLE writes can be as small as 20 bytes).
 struct CtOtaHeaderCheck {
     uint8_t buf[CT_OTA_HEADER_LEN];
     uint8_t have;
-    bool    done;                // header complete and accepted
+    bool    done;  // header complete and accepted
     CtOtaHeaderCheck() : have(0), done(false) { memset(buf, 0, sizeof(buf)); }
     void reset() { have = 0; done = false; memset(buf, 0, sizeof(buf)); }
 };

@@ -11,8 +11,8 @@ class Buttons {
 public:
     enum Mode : uint8_t { OFF = 0, GPIO_MODE = 1, ADC_MODE = 2 };
     void begin();
-    void update();                        // poll; call every loop()
-    bool poll(CtKeyEvent& ev);            // pop one event
+    void update();              // poll; call every loop()
+    bool poll(CtKeyEvent& ev);  // pop one event
     Mode mode() const { return _mode; }
     bool everPressed() const { return _everPressed; }
     uint32_t invalidReads() const { return _invalid; }

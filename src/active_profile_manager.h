@@ -34,9 +34,9 @@
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 enum ActiveVehicleKind : uint8_t {
-    ACTIVE_KIND_NONE   = 0,    // No vehicle selected yet
-    ACTIVE_KIND_DBC    = 1,    // A built-in DBC profile is active
-    ACTIVE_KIND_CUSTOM = 2     // A custom (Learned/Manual) profile is active
+    ACTIVE_KIND_NONE   = 0,  // No vehicle selected yet
+    ACTIVE_KIND_DBC    = 1,  // A built-in DBC profile is active
+    ACTIVE_KIND_CUSTOM = 2   // A custom (Learned/Manual) profile is active
 };
 
 class ActiveProfileManager {

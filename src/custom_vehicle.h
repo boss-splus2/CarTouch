@@ -49,21 +49,21 @@
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 struct LearnedCommand {
-    char label[32]        = {0};     // Internal identifier (e.g. "lock_all" or a custom name)
-    char displayName[48]   = {0};    // English display name shown to the driver
+    char label[32]       = {0};  // Internal identifier (e.g. "lock_all" or a custom name)
+    char displayName[48] = {0};  // English display name shown to the driver
 
     uint32_t canId      = 0;
     bool     isExtended = false;
     uint8_t  length     = 0;
-    uint8_t     data[8]           = {0};
+    uint8_t  data[8]    = {0};
 
-    CommandSource source = SOURCE_MANUAL;
-    CommandStatus status = CMD_UNVERIFIED;
+    CommandSource        source        = SOURCE_MANUAL;
+    CommandStatus        status        = CMD_UNVERIFIED;
     CommandActuatorClass actuatorClass = COMMAND_ACTUATOR_UNKNOWN;
 
-    uint8_t  timesObserved = 0;          // Times seen during capture (Learned only)
-    uint8_t  failCount        = 0;       // Failed verification attempts
-    uint32_t createdAt           = 0;    // Creation time (millis) - for display/debug only; meaningless after reboot, session-local reference
+    uint8_t  timesObserved = 0;  // Times seen during capture (Learned only)
+    uint8_t  failCount     = 0;  // Failed verification attempts
+    uint32_t createdAt     = 0;  // Creation time (millis) - for display/debug only; meaningless after reboot, session-local reference
 };
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -71,13 +71,13 @@ struct LearnedCommand {
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 struct CustomVehicleProfile {
-    uint8_t  id                  = 0;                    // Index in the profile store (0..MAX_CUSTOM_VEHICLES-1)
-    char      name[32]               = {0};              // User-chosen name, e.g. "Dad's Pride"
-    char       brand[24]                 = {0};
-    char        model[24]                    = {0};
-    char        dbcFileName[CT_DBC_NAME_MAX + 1] = {0};
-    uint16_t     year                            = 0;
-    uint32_t     revision                       = 0; // monotonically changes on every persisted profile mutation
+    uint8_t  id                               = 0;    // Index in the profile store (0..MAX_CUSTOM_VEHICLES-1)
+    char     name[32]                         = {0};  // User-chosen name, e.g. "Dad's Pride"
+    char     brand[24]                        = {0};
+    char     model[24]                        = {0};
+    char     dbcFileName[CT_DBC_NAME_MAX + 1] = {0};
+    uint16_t year                             = 0;
+    uint32_t revision                         = 0;    // monotonically changes on every persisted profile mutation
 
     LearnedCommand commands[MAX_LEARNED_COMMANDS_PER_VEHICLE];
     uint8_t          commandCount = 0;

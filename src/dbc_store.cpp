@@ -11,6 +11,10 @@
 #include "ct_sha256.h"
 #include "sd_storage.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Local helpers
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 namespace {
 static const char USER_MANIFEST_PATH[] = "/dbc_user.json";
 static const char BUILTIN_MANIFEST_PATH[] = "/dbc/manifest.json";
@@ -77,6 +81,10 @@ bool dbcMessageDlcFromLine(const char* line, uint8_t& dlc) {
 
 DbcStore dbcStore;
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Status and errors
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 void DbcStore::_setStatus(DbcStoreStatus status) {
     _status = status;
 }
@@ -98,6 +106,10 @@ const char* DbcStore::errorText() const {
     }
     return "Unknown DBC storage error";
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Storage lookup and listing
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 fs::FS* DbcStore::_fsFor(CtStorageLoc location) {
     if (location == CT_LOC_INTERNAL) return &SPIFFS;
@@ -333,6 +345,10 @@ bool DbcStore::isBuiltinFile(const char* name, bool& isBuiltin) {
     return true;
 }
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Upload pipeline
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 bool DbcStore::beginUpload(const char* name, uint32_t expectedBytes) {
     return _beginUpload(name, expectedBytes, expectedBytes, true);
 }
@@ -504,6 +520,10 @@ size_t DbcStore::writeChunk(const uint8_t* data, size_t length) {
     }
     return length;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Manifest handling
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool DbcStore::_writeManifestEntry(File& file, const CtDbcManifestEntry& entry) {
     char line[MANIFEST_LINE_CAPACITY];
@@ -732,6 +752,10 @@ bool DbcStore::deleteUserFile(const char* name, CtStorageLoc location,
     return true;
 }
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Crash recovery and file replace
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 bool DbcStore::_recoverManifest(fs::FS& fs) {
     const bool hasManifest = fs.exists(USER_MANIFEST_PATH);
     const bool hasBackup = fs.exists("/dbc_user.json.bak");
@@ -774,6 +798,10 @@ void DbcStore::_restoreFile(fs::FS& fs, const char* path, const char* bakPath,
     if (fs.exists(path)) fs.remove(path);
     if (hadOriginal && fs.exists(bakPath)) fs.rename(bakPath, path);
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Finish, abort and verify
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool DbcStore::finishUpload() {
     if (!_uploadActive) {

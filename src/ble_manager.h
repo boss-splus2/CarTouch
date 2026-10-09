@@ -43,7 +43,7 @@ private:
     bool _otaError;
     bool _commandAuthenticated;
     volatile bool _activity = false;
-    CtLoginLock _authLock;    // shared by command login and OTA start
+    CtLoginLock _authLock;  // shared by command login and OTA start
     uint16_t _otaConnHandle;
     uint16_t _commandConnHandle;
     bool _hasDeviceCommand;

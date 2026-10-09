@@ -20,23 +20,23 @@
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // CAN1 - ESP32-S3 TWAI with an external 3.3V-compatible transceiver.
-#define PIN_CAN_TX 17   // GPIO17 - CAN Transmit (next to GPIO18 = same order as CTX/CRX on the TJA1051 module)
-#define PIN_CAN_RX 18   // GPIO18 - CAN Receive
+#define PIN_CAN_TX 17  // GPIO17 - CAN Transmit (next to GPIO18 = same order as CTX/CRX on the TJA1051 module)
+#define PIN_CAN_RX 18  // GPIO18 - CAN Receive
 
-#define PIN_CAN1_CS  15    // MCP2515 CS; SPI lines are shared with TFT/Touch
-#define PIN_CAN1_INT 16    // MCP2515 active-low interrupt
-#define CAN1_SPEED 500000
-#define CAN1_LISTEN_ONLY true
+#define PIN_CAN1_CS       15        // MCP2515 CS; SPI lines are shared with TFT/Touch
+#define PIN_CAN1_INT      16        // MCP2515 active-low interrupt
+#define CAN1_SPEED        500000
+#define CAN1_LISTEN_ONLY  true
 #define MCP2515_SPI_CLOCK 10000000
 
 // TFT display - ILI9341, 2.8" SPI, 240x320, with XPT2046 touch
-#define PIN_TFT_CS   10    // GPIO10 - Chip Select
-#define PIN_TFT_DC   7     // GPIO7  - Data/Command
-#define PIN_TFT_RST  4     // GPIO4  - Reset
-#define PIN_TFT_MOSI 11    // GPIO11 - Master Out Slave In
-#define PIN_TFT_SCLK 12    // GPIO12 - Serial Clock
-#define PIN_TFT_MISO 13    // GPIO13 - Master In Slave Out
-#define PIN_TFT_BL   21    // GPIO21 - Backlight
+#define PIN_TFT_CS   10  // GPIO10 - Chip Select
+#define PIN_TFT_DC   7   // GPIO7  - Data/Command
+#define PIN_TFT_RST  4   // GPIO4  - Reset
+#define PIN_TFT_MOSI 11  // GPIO11 - Master Out Slave In
+#define PIN_TFT_SCLK 12  // GPIO12 - Serial Clock
+#define PIN_TFT_MISO 13  // GPIO13 - Master In Slave Out
+#define PIN_TFT_BL   21  // GPIO21 - Backlight
 
 #define PIN_TOUCH_CS          14    // GPIO14 - Touch Chip Select
 
@@ -46,22 +46,22 @@
 // ○○○○○○○○○○ CAN Bus settings
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
-#define CAN_SPEED          500000    // 500 Kbps (standard OBD-II)
-#define CAN_LISTEN_TIMEOUT 50        // Receive timeout, ms
-#define CAN_MAX_RETRY      3         // Max retransmit attempts
+#define CAN_SPEED          500000  // 500 Kbps (standard OBD-II)
+#define CAN_LISTEN_TIMEOUT 50      // Receive timeout, ms
+#define CAN_MAX_RETRY      3       // Max retransmit attempts
 
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 // ○○○○○○○○○○ OBD-II settings
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
 // Standard PIDs (SAE J1979)
-#define OBD_PID_ENGINE_RPM    0x0C    // Engine RPM
-#define OBD_PID_VEHICLE_SPEED 0x0D    // Vehicle speed (km/h)
-#define OBD_PID_COOLANT_TEMP  0x05    // Coolant temperature (degC)
-#define OBD_PID_BATTERY_VOLT  0x42    // Control module voltage (V), SAE J1979
-#define OBD_PID_THROTTLE_POS  0x11    // Throttle position (%)
-#define OBD_PID_FUEL_LEVEL    0x2F    // Fuel level (%)
-#define OBD_PID_RUNTIME       0x1F    // Engine runtime since start
+#define OBD_PID_ENGINE_RPM    0x0C  // Engine RPM
+#define OBD_PID_VEHICLE_SPEED 0x0D  // Vehicle speed (km/h)
+#define OBD_PID_COOLANT_TEMP  0x05  // Coolant temperature (degC)
+#define OBD_PID_BATTERY_VOLT  0x42  // Control module voltage (V), SAE J1979
+#define OBD_PID_THROTTLE_POS  0x11  // Throttle position (%)
+#define OBD_PID_FUEL_LEVEL    0x2F  // Fuel level (%)
+#define OBD_PID_RUNTIME       0x1F  // Engine runtime since start
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ Display settings
@@ -69,7 +69,7 @@
 
 #define TFT_WIDTH            240
 #define TFT_HEIGHT           320
-#define TFT_ROTATION         1      // 0-3
+#define TFT_ROTATION         1    // 0-3
 #define TFT_BRIGHTNESS_MAX   255
 #define TFT_BRIGHTNESS_NIGHT 50
 #define TFT_BRIGHTNESS_DAY   200
@@ -85,13 +85,13 @@
 // ○○○○○○○○○○ WiFi / web server settings
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
-#define WIFI_AP_NAME     "CarTouch"
-#define WIFI_AP_CHANNEL  1               // 2.4 GHz channel of the access point
-#define WIFI_AP_MAX_CLIENTS 4            // Simultaneous Wi-Fi clients on the access point
+#define WIFI_AP_NAME        "CarTouch"
+#define WIFI_AP_CHANNEL     1           // 2.4 GHz channel of the access point
+#define WIFI_AP_MAX_CLIENTS 4           // Simultaneous Wi-Fi clients on the access point
 // The Wi-Fi access point uses the same password as the web UI and BLE
 // (AppConfig::webPass). There is no separate Wi-Fi password in the source.
-#define WIFI_MAX_RETRY   20
-#define WIFI_TIMEOUT_MS  15000
+#define WIFI_MAX_RETRY  20
+#define WIFI_TIMEOUT_MS 15000
 
 #define WEB_PORT 80
 
@@ -125,9 +125,9 @@ static_assert(sizeof(WEB_DEFAULT_USER) >= 2 && sizeof(WEB_DEFAULT_USER) <= 16,
 // □□□□□□□□□□ Power management
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
-#define AUTO_SLEEP_TIMEOUT         600000    // 10 minutes of inactivity, ms
-#define CAN_WAKEUP_ID              0x000     // CAN ID that wakes the device (0x000 = any)
-#define DEEP_SLEEP_WAKEUP_DURATION 60        // Periodic wake interval in deep sleep, s
+#define AUTO_SLEEP_TIMEOUT         600000  // 10 minutes of inactivity, ms
+#define CAN_WAKEUP_ID              0x000   // CAN ID that wakes the device (0x000 = any)
+#define DEEP_SLEEP_WAKEUP_DURATION 60      // Periodic wake interval in deep sleep, s
 
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 // ○○○○○○○○○○ Vehicle settings
@@ -140,13 +140,13 @@ static_assert(sizeof(WEB_DEFAULT_USER) >= 2 && sizeof(WEB_DEFAULT_USER) <= 16,
 // ○○○○○○○○○○ Learn Mode settings - see README.md
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
-#define MAX_CUSTOM_VEHICLES              8       // Max custom (Learned/Manual) profiles
-#define MAX_LEARNED_COMMANDS_PER_VEHICLE 32      // Max commands per custom profile
-#define LEARN_BASELINE_MS                2000    // Default baseline capture duration, ms
-#define LEARN_ACTION_CAPTURE_MS          2000    // Default action capture duration, ms
-#define LEARN_ACTION_CAPTURE_MAX_MS      5000    // Max allowed action capture duration, ms
-#define BASELINE_MAX_IDS                 200     // Max distinct CAN IDs tracked during baseline (must stay <= 255: counter is uint8_t)
-#define CANDIDATE_MAX                    10      // Max candidates shown after diffing
+#define MAX_CUSTOM_VEHICLES              8     // Max custom (Learned/Manual) profiles
+#define MAX_LEARNED_COMMANDS_PER_VEHICLE 32    // Max commands per custom profile
+#define LEARN_BASELINE_MS                2000  // Default baseline capture duration, ms
+#define LEARN_ACTION_CAPTURE_MS          2000  // Default action capture duration, ms
+#define LEARN_ACTION_CAPTURE_MAX_MS      5000  // Max allowed action capture duration, ms
+#define BASELINE_MAX_IDS                 200   // Max distinct CAN IDs tracked during baseline (must stay <= 255: counter is uint8_t)
+#define CANDIDATE_MAX                    10    // Max candidates shown after diffing
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ Global data types
@@ -179,10 +179,10 @@ enum ThemeMode : uint8_t {
 };
 
 enum DeviceMode : uint8_t {
-    MODE_LISTEN_ONLY = 0,    // Listen-only - no commands are sent
-    MODE_ACTIVE      = 1,    // Active - user can issue commands
-    MODE_SLEEP       = 2,    // Low-power sleep
-    MODE_DEEP_SLEEP  = 3     // Deep sleep - lowest power
+    MODE_LISTEN_ONLY = 0,  // Listen-only - no commands are sent
+    MODE_ACTIVE      = 1,  // Active - user can issue commands
+    MODE_SLEEP       = 2,  // Low-power sleep
+    MODE_DEEP_SLEEP  = 3   // Deep sleep - lowest power
 };
 
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
@@ -192,13 +192,13 @@ enum DeviceMode : uint8_t {
 struct VehicleData {
     // Powertrain
     uint16_t engineRPM      = 0;
-    uint8_t  vehicleSpeed   = 0;       // km/h
-    int8_t   coolantTemp    = -40;     // degC
-    float    batteryVoltage = 0.0f;    // V
-    uint8_t  throttlePos    = 0;       // %
-    uint8_t  fuelLevel      = 0;       // %
-    uint16_t engineRuntime  = 0;       // seconds
-    uint8_t  validMask      = 0;       // CT_VD_* bits: which values the ECU really answered (see ct_obd_validity.h)
+    uint8_t  vehicleSpeed   = 0;     // km/h
+    int8_t   coolantTemp    = -40;   // degC
+    float    batteryVoltage = 0.0f;  // V
+    uint8_t  throttlePos    = 0;     // %
+    uint8_t  fuelLevel      = 0;     // %
+    uint16_t engineRuntime  = 0;     // seconds
+    uint8_t  validMask      = 0;     // CT_VD_* bits: which values the ECU really answered (see ct_obd_validity.h)
 
     // Doors
     DoorLockState doorFL     = LOCK_UNKNOWN;
@@ -225,17 +225,17 @@ struct AppConfig {
     // WiFi
     char wifiSSID[32]     = "";
     char wifiPassword[64] = "";
-    bool wifiEnabled       = true;
+    bool wifiEnabled      = true;
 
     // Web
-    char webUser[16]           = WEB_DEFAULT_USER;
-    char webPass[16]           = WEB_DEFAULT_PASS;
-    bool forcePasswordChange   = false;               // Legacy flag from old firmware (random temporary password); never set now
+    char webUser[16]         = WEB_DEFAULT_USER;
+    char webPass[16]         = WEB_DEFAULT_PASS;
+    bool forcePasswordChange = false;  // Legacy flag from old firmware (random temporary password); never set now
 
     // Vehicle
     char     vehicleBrand[32] = "Generic";
     char     vehicleModel[32] = "OBD-II";
-    uint16_t vehicleYear       = 2020;
+    uint16_t vehicleYear      = 2020;
 
     // Display
     ThemeMode theme           = THEME_AUTO;
@@ -246,7 +246,7 @@ struct AppConfig {
     uint8_t  canTxPin       = PIN_CAN_TX;
     uint8_t  canRxPin       = PIN_CAN_RX;
     uint32_t canSpeed       = CAN_SPEED;
-    bool     listenOnlyMode = true;         // Safe default: listen-only, nothing transmitted on the bus
+    bool     listenOnlyMode = true;  // Safe default: listen-only, nothing transmitted on the bus
 
     // Power
     uint32_t sleepTimeout = AUTO_SLEEP_TIMEOUT;
@@ -254,20 +254,20 @@ struct AppConfig {
     // Touch calibration - output of TFT_eSPI's calibrateTouch(): 5
     // uint16_t values mapping raw ADC coordinates to screen pixels.
     uint16_t touchCalData[5] = {0, 0, 0, 0, 0};
-    bool     touchCalibrated  = false;             // false = not yet calibrated; first boot should run the wizard
+    bool     touchCalibrated = false;  // false = not yet calibrated; first boot should run the wizard
 
     uint32_t configMagic = 0xCAFE1234;    // Validity marker
 
     // Appended to preserve the layout of the prior NVS blob for migration.
-    uint8_t  can1CsPin       = PIN_CAN1_CS;
-    uint8_t  can1IntPin      = PIN_CAN1_INT;
-    uint32_t can1Speed       = CAN1_SPEED;
-    bool     can1ListenOnly  = CAN1_LISTEN_ONLY;
+    uint8_t  can1CsPin      = PIN_CAN1_CS;
+    uint8_t  can1IntPin     = PIN_CAN1_INT;
+    uint32_t can1Speed      = CAN1_SPEED;
+    bool     can1ListenOnly = CAN1_LISTEN_ONLY;
 
     // Explicit OBD route: 0 = CAN1/TWAI, 1 = CAN2/MCP2515.
     // Appended so earlier NVS layouts remain migratable.
-    uint8_t  obdCanBus       = 0;
-    uint8_t  learnCanBus     = 0;
+    uint8_t obdCanBus   = 0;
+    uint8_t learnCanBus = 0;
 
     // Explicit vehicle-command route: 0 = CAN1/TWAI, 1 = CAN2/MCP2515.
     // Stored in the former trailing padding, so sizeof(AppConfig) and the
