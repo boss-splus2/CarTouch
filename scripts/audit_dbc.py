@@ -10,11 +10,19 @@ really targets. Source and licence are always written as "unverified".
 """
 import hashlib, json, os, re, sys
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Configuration
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 D = os.path.join(os.path.dirname(__file__), "..", "data", "dbc")
 SPECIALIZED = re.compile(r"(object|radar|adas|actuator|park_assist|party|lowspeed|chassis|"
                          r"high_voltage|body|ESR|CADS|_exp|dsu|tssp)", re.I)
 ESSENTIAL = re.compile(r"(psa_|hyundai|toyota_(2017|prius|iQ)|nissan|mazda_(2017|3)|"
                        r"mg\.|hongqi|gwm|luxgen|vw_(mqb|pq)\b|vw_mqb\.)", re.I)
+
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Checks
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 def tier(n):
     if SPECIALIZED.search(n): return "specialized"

@@ -13,6 +13,9 @@ import re
 import sys
 from pathlib import Path
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Checks
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 def find(text, pattern, what):
     m = re.search(pattern, text)
@@ -21,6 +24,9 @@ def find(text, pattern, what):
         sys.exit(1)
     return int(m.group(1))
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Entry point
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 def main():
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
@@ -62,7 +68,6 @@ def main():
         return 1
     print("OK: DBC limits consistent (cap %d messages, name max %d, field %d)" % (cap_vdb, name_max, field))
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

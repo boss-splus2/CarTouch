@@ -12,16 +12,22 @@ import re
 import sys
 from pathlib import Path
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Configuration
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 OSC_HZ = 8_000_000
 SUPPORTED = {100: 100_000, 125: 125_000, 250: 250_000, 500: 500_000, 1000: 1_000_000}
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Checks
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 def find_header(arg):
     if arg:
         return Path(arg)
     hits = sorted(Path(".pio/libdeps").glob("*/*/mcp2515.h"))
     return hits[0] if hits else None
-
 
 def decode(c1, c2, c3):
     brp = c1 & 0x3F
@@ -37,6 +43,9 @@ def decode(c1, c2, c3):
     sample = (1 + prseg + ph1) * 1000 // total
     return bitrate, sample, sjw, total
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Entry point
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 def main():
     header = find_header(sys.argv[1] if len(sys.argv) > 1 else None)
@@ -62,7 +71,6 @@ def main():
             print("%4d kbps: OK  CNF=%s  sample=%.1f%%  SJW=%dTQ  TQ/bit=%d" % (
                 kbps, "/".join("%02X" % v for v in vals), d[1] / 10, d[2], d[3]))
     return 0 if ok else 1
-
 
 if __name__ == "__main__":
     sys.exit(main())

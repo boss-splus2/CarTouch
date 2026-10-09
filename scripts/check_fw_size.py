@@ -19,6 +19,10 @@ import csv
 import sys
 from pathlib import Path
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Configuration
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 ENVS = (
     ("esp32-s3-devkitc-1", "cartouch_16MB.csv"),
     ("esp32-s3-headless", "cartouch_16MB.csv"),
@@ -26,6 +30,9 @@ ENVS = (
     ("esp32-s3-4mb-psram", "cartouch_4MB.csv"),
 )
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Checks
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 def app_slot(csv_path):
     with Path(csv_path).open(newline="") as f:
@@ -34,6 +41,9 @@ def app_slot(csv_path):
                 return int(row[4].strip(), 0)
     raise SystemExit(f"app0 not found in {csv_path}")
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Entry point
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -64,7 +74,6 @@ def main():
               f"{args.min_free} bytes free.")
         return 1
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

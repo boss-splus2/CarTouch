@@ -19,6 +19,10 @@ import re
 import sys
 from pathlib import Path
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Configuration
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 ALLOWED = {
     "can_manager.cpp", "mcp2515_can_interface.cpp", "can_service.cpp",
     "obd2_reader.cpp", "vehicle_control.cpp",
@@ -29,11 +33,17 @@ ALLOWED = {
 
 TX_CALL = re.compile(r"\b(sendMessage|twai_transmit\w*)\s*\(")
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Checks
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 def strip_comments(text):
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
     return re.sub(r"//[^\n]*", "", text)
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# □□□□□□□□□□ Entry point
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 def main():
     root = Path(sys.argv[1] if len(sys.argv) > 1 else "src")
@@ -52,7 +62,6 @@ def main():
         return 1
     print("OK: only approved modules transmit on CAN")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
