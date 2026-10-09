@@ -2,10 +2,10 @@
 """Collect the logs of every finished job in the current workflow run.
 
 Runs in the last CI job (`logs`, `if: always()`), after all other jobs have
-finished, so the run always ends with a downloadable "ci-report" artifact (check
-report + these logs) next to "cartouch-firmware" - pass or fail.
+finished, so the run always ends with a downloadable "logs" artifact (these
+logs) next to "ci-report" and "cartouch-firmware" - pass or fail.
 
-Output folder (the workflow uses ci-report/logs/):
+Output folder (the workflow uses logs/):
   run-summary.txt   one line per job and per step with its result
   jobs.json         the raw job/step data returned by the GitHub API
   NN_<job>.log      the full log text of each finished job
