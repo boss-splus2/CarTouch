@@ -123,7 +123,8 @@ def collect(out_dir, repo, run_id, attempt):
         elif conclusion == "skipped":
             summary.append("    (job was skipped, it has no log)")
         else:
-            ok, text = gh_api_retry(f"repos/{repo}/actions/jobs/{job['id']}/logs")
+            ok, text = gh_api_retry(f"repos/{repo}/actions/jobs/{job['id']}/logs",
+                                    "--allow-escape-sequences")
             if ok and text.strip():
                 fname = f"{index:02d}_{safe_name(name)}.log"
                 (out / fname).write_text(text, encoding="utf-8")
