@@ -130,6 +130,13 @@ void ActiveProfileManager::clearActiveIfCustom(uint8_t profileIndex) {
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
 bool ActiveProfileManager::resolveCommand(const char* label, CanMessage& outMsg, String& outErrorReason) {
+    CommandActuatorClass ignored = COMMAND_ACTUATOR_UNKNOWN;
+    return resolveCommand(label, outMsg, ignored, outErrorReason);
+}
+
+bool ActiveProfileManager::resolveCommand(const char* label, CanMessage& outMsg,
+                                          CommandActuatorClass& outClass, String& outErrorReason) {
+    outClass = COMMAND_ACTUATOR_UNKNOWN;
     if (_activeKind == ACTIVE_KIND_NONE) {
         outErrorReason = "No vehicle selected";
         return false;
@@ -192,11 +199,21 @@ bool ActiveProfileManager::resolveCommand(const char* label, CanMessage& outMsg,
     outMsg.isRemote        = false;
     outMsg.length             = cmd.length;
     memcpy(outMsg.data, cmd.data, cmd.length);
+    // The class stored with the command drives the duty-cycle protection in
+    // VehicleControl. It is never guessed from the label text.
+    outClass = cmd.actuatorClass;
 
     return true;
 }
 
 bool ActiveProfileManager::resolveCommandForVerification(const char* label, CanMessage& outMsg, String& outErrorReason) {
+    CommandActuatorClass ignored = COMMAND_ACTUATOR_UNKNOWN;
+    return resolveCommandForVerification(label, outMsg, ignored, outErrorReason);
+}
+
+bool ActiveProfileManager::resolveCommandForVerification(const char* label, CanMessage& outMsg,
+                                                         CommandActuatorClass& outClass, String& outErrorReason) {
+    outClass = COMMAND_ACTUATOR_UNKNOWN;
     if (_activeKind == ACTIVE_KIND_NONE) {
         outErrorReason = "No vehicle selected";
         return false;
@@ -208,32 +225,13 @@ bool ActiveProfileManager::resolveCommandForVerification(const char* label, CanM
         return false;
     }
 
-    LearnedCommand cmd;
-    if (!_customStore.findCommand(_activeCustomIndex, label, cmd)) {
+    // One implementation of the verification checks (unknown actuator class,
+    // CAN ID / length, already-verified) for both entry points.
+    if (!getCommandActuatorClass(_activeCustomIndex, label, outClass)) {
         outErrorReason = "No command with this label is registered for this vehicle";
         return false;
     }
-
-    // Verification is only for commands that are still unverified.
-    if (cmd.status != CMD_UNVERIFIED) {
-        outErrorReason = "This command is already verified";
-        return false;
-    }
-
-    // Every other safety mechanism (Listen-Only, rate limiting,
-    // duty-cycle) still applies in VehicleControl.
-    if (cmd.length > 8 || !ctTxIdValid(cmd.canId, cmd.isExtended)) {
-        outErrorReason = "Stored command has an invalid CAN ID or length - re-create it";
-        return false;
-    }
-
-    outMsg.id          = cmd.canId;
-    outMsg.isExtended    = cmd.isExtended;
-    outMsg.isRemote        = false;
-    outMsg.length             = cmd.length;
-    memcpy(outMsg.data, cmd.data, cmd.length);
-
-    return true;
+    return resolveCommandForVerification(_activeCustomIndex, label, outMsg, outErrorReason);
 }
 
 bool ActiveProfileManager::resolveCommandForVerification(uint8_t profileIndex, const char* label, CanMessage& outMsg, String& outErrorReason) {

@@ -492,12 +492,19 @@ bool CustomVehicleStore::_jsonToProfile(JsonDocument& doc, CustomVehicleProfile&
         for (JsonVariant v : dataArr) { if (bi >= 8) break; cc.data[bi++] = v.as<uint8_t>(); }
 
         cc.source = (CommandSource)sourceVal;
-        int actuatorVal = item["actuatorClass"] | (int)COMMAND_ACTUATOR_UNKNOWN;
-        if (actuatorVal < (int)COMMAND_ACTUATOR_UNKNOWN || actuatorVal > (int)COMMAND_ACTUATOR_MIRROR) actuatorVal = (int)COMMAND_ACTUATOR_UNKNOWN;
-        cc.actuatorClass = (CommandActuatorClass)actuatorVal;
-        // Imported commands are never trusted as VERIFIED on this device.
-        // The status field is validated above only to reject malformed input.
-        cc.status = CMD_UNVERIFIED;
+        // Actuator class: a profile saved before this field existed keeps its
+        // standard commands usable (documented class per label); a custom label
+        // without the field stays UNKNOWN and is refused (fail-closed). An
+        // out-of-range value is also UNKNOWN. Rules: ct_command_types.h.
+        cc.actuatorClass = ctCommandActuatorFromStored(
+            !item["actuatorClass"].isNull(),
+            item["actuatorClass"] | (int)COMMAND_ACTUATOR_UNKNOWN,
+            cc.label);
+        // Status: this device's own flash (strict == false) keeps the stored
+        // "verified", otherwise every verification would be forgotten at the
+        // next read. An import (strict == true) is NEVER trusted as verified;
+        // importProfileJSON() also downgrades it explicitly.
+        cc.status = ctCommandStatusFromStored(statusStr, /*trustedStorage=*/!strict);
 
         cc.timesObserved = item["timesObserved"] | 0;
         cc.failCount     = item["failCount"] | 0;

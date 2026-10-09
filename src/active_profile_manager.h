@@ -79,6 +79,15 @@ public:
     bool resolveCommand(const char* label, CanMessage& outMsg, String& outErrorReason);
 
     /**
+     * Same as above and also returns the actuator class stored with the
+     * command (never UNKNOWN on success). VehicleControl uses it for the
+     * duty-cycle protection of window / sunroof / mirror motors, so the
+     * protection follows the stored metadata and not the label text.
+     */
+    bool resolveCommand(const char* label, CanMessage& outMsg,
+                        CommandActuatorClass& outClass, String& outErrorReason);
+
+    /**
      * Same resolution as resolveCommand(), but for the one-shot Learn
      * Mode verification test send: an UNVERIFIED custom command is
      * allowed through instead of being rejected. Must be called ONLY
@@ -88,6 +97,8 @@ public:
      * must keep using resolveCommand().
      */
     bool resolveCommandForVerification(const char* label, CanMessage& outMsg, String& outErrorReason);
+    bool resolveCommandForVerification(const char* label, CanMessage& outMsg,
+                                       CommandActuatorClass& outClass, String& outErrorReason);
     bool resolveCommandForVerification(uint8_t profileIndex, const char* label, CanMessage& outMsg, String& outErrorReason);
     bool getCommandActuatorClass(uint8_t profileIndex, const char* label, CommandActuatorClass& outClass);
 
