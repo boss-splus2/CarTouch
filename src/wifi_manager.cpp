@@ -55,9 +55,11 @@ void WiFiManager::begin(uint8_t mode) {
 // The access point key comes from getWifiApKey(): the device password in
 // personal mode (unchanged behaviour), a separate stored key in commercial
 // mode. WPA2 needs 8 to 63 characters; an empty key would start an OPEN
-// network, so getWifiApKey() falls back to the factory key.
-static const char* apPassword() {
-    return getWifiApKey();
+// network, so the key falls back to the factory key.
+// Copied under the credentials lock: in personal mode the key IS the web
+// password, which the async web task or BLE can change at any time.
+static void apPassword(char* out, size_t outSize) {
+    getWifiApKeySnapshot(out, outSize);
 }
 
 void WiFiManager::_startAP() {
@@ -65,7 +67,10 @@ void WiFiManager::_startAP() {
 
     // apPassword() is always >= 8 characters, so the Arduino default auth mode
     // is WPA2-PSK (never an open network). Client count is capped.
-    bool result = WiFi.softAP(WIFI_AP_NAME, apPassword(), WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
+    char apKey[16];
+    apPassword(apKey, sizeof(apKey));
+    bool result = WiFi.softAP(WIFI_AP_NAME, apKey, WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
+    memset(apKey, 0, sizeof(apKey));
 
     if (result) {
         _apUp = true;
@@ -85,7 +90,12 @@ void WiFiManager::_startAP() {
 
 void WiFiManager::_beginSta(const char* ssid, const char* pass) {
     WiFi.mode(WIFI_AP_STA);
-    if (!_apUp) _apUp = WiFi.softAP(WIFI_AP_NAME, apPassword(), WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
+    if (!_apUp) {
+        char apKey[16];
+        apPassword(apKey, sizeof(apKey));
+        _apUp = WiFi.softAP(WIFI_AP_NAME, apKey, WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
+        memset(apKey, 0, sizeof(apKey));
+    }
     WiFi.begin(ssid, pass);
     _connecting = true;
     _connectStart = millis();

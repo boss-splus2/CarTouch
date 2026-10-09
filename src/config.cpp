@@ -15,9 +15,12 @@
 #include "ct_listen_override.h"
 #include <nvs_flash.h>
 #include <nvs.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/portmacro.h>
 
 static AppConfig currentConfig;
 static bool       configLoaded = false;
+static portMUX_TYPE s_credentialsMux = portMUX_INITIALIZER_UNLOCKED;
 
 static PasswordChangeCallback _passwordChangeCallback = nullptr;
 
@@ -376,17 +379,41 @@ AppConfig* getConfig() {
 // □□□□□□□□□□ Password helpers
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
+void getWebCredentialsSnapshot(char* user, size_t userSize,
+                               char* password, size_t passwordSize) {
+    getConfig();  // load the stored login first (NVS access must stay outside the lock)
+    portENTER_CRITICAL(&s_credentialsMux);
+    if (user && userSize) ctCopyStr(user, userSize, currentConfig.webUser);
+    if (password && passwordSize) ctCopyStr(password, passwordSize, currentConfig.webPass);
+    portEXIT_CRITICAL(&s_credentialsMux);
+}
+
 bool isUsingDefaultPassword() {
     // CT_REQUIRE_PASSWORD_CHANGE = 0 (personal mode): always false, the default
     // login is allowed everywhere. Otherwise: true while the factory flag is
     // set or the password still equals the compiled-in default.
+    char password[sizeof(currentConfig.webPass)];
+    bool forceChange;
+    getConfig();
+    portENTER_CRITICAL(&s_credentialsMux);
+    ctCopyStr(password, sizeof(password), currentConfig.webPass);
+    forceChange = currentConfig.forcePasswordChange;
+    portEXIT_CRITICAL(&s_credentialsMux);
     return ctPasswordChangePending(CT_REQUIRE_PASSWORD_CHANGE != 0,
-                                   getConfig()->forcePasswordChange,
-                                   getConfig()->webPass);
+                                   forceChange, password);
 }
 
 const char* getWifiApKey() {
     return ctEffectiveApKey(CT_AP_KEY_SEPARATE != 0, getConfig()->webPass, s_apKey);
+}
+
+void getWifiApKeySnapshot(char* out, size_t outSize) {
+    if (!out || outSize == 0) return;
+    getConfig();  // make sure the stored login is loaded before the lock is taken
+    portENTER_CRITICAL(&s_credentialsMux);
+    ctCopyStr(out, outSize, ctEffectiveApKey(CT_AP_KEY_SEPARATE != 0,
+                                             currentConfig.webPass, s_apKey));
+    portEXIT_CRITICAL(&s_credentialsMux);
 }
 
 bool setWifiApKey(const char* newKey) {
@@ -396,10 +423,14 @@ bool setWifiApKey(const char* newKey) {
         return false;
     }
     char old[sizeof(s_apKey)];
+    portENTER_CRITICAL(&s_credentialsMux);
     memcpy(old, s_apKey, sizeof(old));
     ctCopyStr(s_apKey, sizeof(s_apKey), newKey);
+    portEXIT_CRITICAL(&s_credentialsMux);
     if (!persistApKey()) {
+        portENTER_CRITICAL(&s_credentialsMux);
         memcpy(s_apKey, old, sizeof(old));
+        portEXIT_CRITICAL(&s_credentialsMux);
         return false;
     }
     return true;  // takes effect the next time the access point starts
@@ -427,12 +458,14 @@ bool setWebPassword(const char* newUser, const char* newPass) {
 #endif
 
     AppConfig* cfg = getConfig();
-    // Keep the old credentials so a failed NVS write does not leave RAM and
-    // flash disagreeing (RAM would accept a password that is lost on reboot).
+    // Credential readers run in the async HTTP task and NimBLE callbacks.
+    // Publish the complete pair atomically; never hold the spinlock across NVS IO.
     char oldUser[sizeof(cfg->webUser)], oldPass[sizeof(cfg->webPass)];
+    bool oldForce;
+    portENTER_CRITICAL(&s_credentialsMux);
     memcpy(oldUser, cfg->webUser, sizeof(oldUser));
     memcpy(oldPass, cfg->webPass, sizeof(oldPass));
-    const bool oldForce = cfg->forcePasswordChange;
+    oldForce = cfg->forcePasswordChange;
     if (newUser && strlen(newUser) > 0) {
         strncpy(cfg->webUser, newUser, sizeof(cfg->webUser) - 1);
         cfg->webUser[sizeof(cfg->webUser) - 1] = '\0';
@@ -440,12 +473,15 @@ bool setWebPassword(const char* newUser, const char* newPass) {
     strncpy(cfg->webPass, newPass, sizeof(cfg->webPass) - 1);
     cfg->webPass[sizeof(cfg->webPass) - 1] = '\0';
     cfg->forcePasswordChange = false;
+    portEXIT_CRITICAL(&s_credentialsMux);
 
     bool saved = saveConfig();
     if (!saved) {
+        portENTER_CRITICAL(&s_credentialsMux);
         memcpy(cfg->webUser, oldUser, sizeof(oldUser));
         memcpy(cfg->webPass, oldPass, sizeof(oldPass));
         cfg->forcePasswordChange = oldForce;
+        portEXIT_CRITICAL(&s_credentialsMux);
     }
 
     // Regardless of which interface called this (TFT or web), notify any

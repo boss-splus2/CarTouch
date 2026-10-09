@@ -301,6 +301,8 @@ void configSetLearnListenOverride(uint8_t busIndex, bool forced, bool userChoice
 
 /** True if the device is still using the default/temporary web password. */
 bool isUsingDefaultPassword();
+// Copies credential fields atomically for use by async Web/BLE tasks.
+void getWebCredentialsSnapshot(char* user, size_t userSize, char* password, size_t passwordSize);
 
 /**
  * Key for the Wi-Fi access point (8 to 15 characters, never empty).
@@ -308,6 +310,10 @@ bool isUsingDefaultPassword();
  * its own stored value.
  */
 const char* getWifiApKey();
+
+// Copies the Wi-Fi AP key into `out` under the credentials lock (the pointer form
+// above can alias the web password, which another task may change).
+void getWifiApKeySnapshot(char* out, size_t outSize);
 
 /**
  * Sets the separate AP key (only when CT_AP_KEY_SEPARATE=1; otherwise returns
