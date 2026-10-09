@@ -26,6 +26,10 @@ void WiFiManager::begin(uint8_t mode) {
     }
 
     Serial.println("[WiFi] Starting WiFi...");
+    // Avoid persisting transient radio settings in NVS and disable modem
+    // sleep: both improve AP discovery/reliability on some ESP32-S3 boards.
+    WiFi.persistent(false);
+    WiFi.setSleep(false);
 
     switch (mode) {
         case 0:
@@ -63,24 +67,37 @@ static void apPassword(char* out, size_t outSize) {
 }
 
 void WiFiManager::_startAP() {
+    _apUp = false;
     WiFi.mode(WIFI_AP);
+    delay(100); // allow the ESP-IDF Wi-Fi driver to enter AP mode
 
-    // apPassword() is always >= 8 characters, so the Arduino default auth mode
-    // is WPA2-PSK (never an open network). Client count is capped.
-    char apKey[16];
+    // apPassword() is always >= 8 characters, so this remains WPA2-PSK.
+    // Retry once after resetting AP mode; a failed first start must not leave
+    // the device silently without a discoverable network.
+    char apKey[16] = {};
     apPassword(apKey, sizeof(apKey));
     bool result = WiFi.softAP(WIFI_AP_NAME, apKey, WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
+    if (!result) {
+        Serial.println("[WiFi] AP start attempt 1 failed; resetting AP mode");
+        WiFi.softAPdisconnect(true);
+        WiFi.mode(WIFI_OFF);
+        delay(150);
+        WiFi.mode(WIFI_AP);
+        delay(150);
+        result = WiFi.softAP(WIFI_AP_NAME, apKey, WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
+    }
     memset(apKey, 0, sizeof(apKey));
 
-    if (result) {
+    if (result && WiFi.softAPIP() != IPAddress(0, 0, 0, 0)) {
         _apUp = true;
         _state = CT_WIFI_AP;
         Serial.printf("[WiFi] Access Point: %s | IP: %s\n",
                       WIFI_AP_NAME, WiFi.softAPIP().toString().c_str());
         Serial.println("[WiFi] AP password = device password (not printed)");
     } else {
+        _apUp = false;
         _state = CT_WIFI_DISABLED;
-        Serial.println("[WiFi] Failed to create Access Point");
+        Serial.printf("[WiFi] ERROR: Access Point '%s' failed after retry; check boot log, power, board target and ESP-IDF Wi-Fi errors\n", WIFI_AP_NAME);
     }
 }
 

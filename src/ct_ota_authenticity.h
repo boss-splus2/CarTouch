@@ -21,6 +21,8 @@ typedef bool (*CtOtaSignatureVerifier)(const char* sha256Hex,
 static inline bool ctOtaSignatureHexValid(const char* signatureHex) {
     if (!signatureHex) return false;
     size_t n = 0;
+    // Check the bound before dereferencing: callers may supply an oversized
+    // non-terminated buffer, so the old condition could read index MAX+1.
     while (n <= CT_OTA_SIG_HEX_MAX && signatureHex[n] != '\0') ++n;
     if (n < CT_OTA_SIG_HEX_MIN || n > CT_OTA_SIG_HEX_MAX || (n & 1u) != 0) return false;
     for (size_t i = 0; i < n; ++i) {

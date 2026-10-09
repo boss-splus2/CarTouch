@@ -542,7 +542,9 @@ void WebServerManager::begin(uint16_t port) {
     _server.on("/", HTTP_GET, [this](AsyncWebServerRequest* request) {
         // This route owns the authentication response so the browser
         // receives one consistent Basic-Auth challenge.
-        AppConfig* authCfg = getConfig();
+        char authUser[16] = {};
+        char authPass[16] = {};
+        getWebCredentialsSnapshot(authUser, sizeof(authUser), authPass, sizeof(authPass));
 
         const uint32_t ip = ctClientIp(request);
         uint32_t remainingMs;
@@ -556,7 +558,7 @@ void WebServerManager::begin(uint16_t port) {
             return;
         }
 
-        if (!request->authenticate(authCfg->webUser, authCfg->webPass)) {
+        if (!request->authenticate(authUser, authPass)) {
             _registerLoginFailure(ip);
             AsyncWebServerResponse* response = request->beginResponse(401, "text/html; charset=utf-8",
                 "<html><head><meta charset='utf-8'></head><body dir='ltr'><h3>Unauthorized</h3>"
@@ -599,13 +601,16 @@ void WebServerManager::begin(uint16_t port) {
             return;
         }
 
-        String     user = request->arg("user");
-        String     pass = request->arg("pass");
-        AppConfig* cfg  = getConfig();
+        String user = request->arg("user");
+        String pass = request->arg("pass");
+        char expectedUser[16] = {};
+        char expectedPass[16] = {};
+        getWebCredentialsSnapshot(expectedUser, sizeof(expectedUser),
+                                  expectedPass, sizeof(expectedPass));
 
         // Both fields are always compared (no early exit) in constant time.
-        const bool userOk = ctSecureEquals(cfg->webUser, user);
-        const bool passOk = ctSecureEquals(cfg->webPass, pass);
+        const bool userOk = ctSecureEquals(expectedUser, user);
+        const bool passOk = ctSecureEquals(expectedPass, pass);
         if (userOk && passOk) {
             _registerLoginSuccess(ip);
             _activity = true;
@@ -702,6 +707,42 @@ void WebServerManager::begin(uint16_t port) {
             request->send(400, "application/json",
                 "{\"success\":false,\"error\":\"Password must be 8 to 15 characters\"}");
         }
+    });
+
+    _server.on("/api/wifi/scan", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        if (!_authenticate(request)) return;
+        // Use the asynchronous ESP32 scan API so the AsyncWebServer task is
+        // never blocked for several seconds. The client polls until complete.
+        int count = WiFi.scanComplete();
+        if (count == WIFI_SCAN_RUNNING) {
+            request->send(200, "application/json", "{\"success\":true,\"scanning\":true}");
+            return;
+        }
+        if (count == WIFI_SCAN_FAILED) {
+            WiFi.scanDelete();
+            // ESP32 scans require a station-capable mode. Keep the CarTouch
+            // AP enabled while adding the STA interface for the scan.
+            if (WiFi.getMode() == WIFI_AP) WiFi.mode(WIFI_AP_STA);
+            WiFi.scanNetworks(true, true); // async scan, include hidden networks
+            request->send(200, "application/json", "{\"success\":true,\"scanning\":true}");
+            return;
+        }
+        JsonDocument doc;
+        doc["success"] = true;
+        doc["scanning"] = false;
+        JsonArray networks = doc["networks"].to<JsonArray>();
+        for (int i = 0; i < count; ++i) {
+            const String ssid = WiFi.SSID(i);
+            if (ssid.length() == 0) continue;
+            JsonObject item = networks.add<JsonObject>();
+            item["ssid"] = ssid;
+            item["rssi"] = WiFi.RSSI(i);
+            item["secure"] = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
+        }
+        String body;
+        serializeJson(doc, body);
+        WiFi.scanDelete();
+        request->send(200, "application/json", body);
     });
 
     _server.on("/api/wifi", HTTP_POST, [this](AsyncWebServerRequest* request) {
@@ -2397,7 +2438,10 @@ void WebServerManager::_registerLoginSuccess(uint32_t ip) {
 // Sending twice on the same AsyncWebServerRequest is undefined
 // behavior in ESPAsyncWebServer.
 bool WebServerManager::_authenticate(AsyncWebServerRequest* request) {
-    AppConfig* cfg = getConfig();
+    char expectedUser[16] = {};
+    char expectedPass[16] = {};
+    getWebCredentialsSnapshot(expectedUser, sizeof(expectedUser),
+                              expectedPass, sizeof(expectedPass));
 
     const uint32_t ip = ctClientIp(request);
     uint32_t remainingMs;
@@ -2409,7 +2453,7 @@ bool WebServerManager::_authenticate(AsyncWebServerRequest* request) {
         return false;
     }
 
-    if (!request->authenticate(cfg->webUser, cfg->webPass)) {
+    if (!request->authenticate(expectedUser, expectedPass)) {
         getErrorLog()->log(LOG_CAT_WEB, LOG_WARN, "Failed basic-auth attempt (%s)", request->url().c_str());
         _registerLoginFailure(ip);
         request->requestAuthentication("CarTouch");

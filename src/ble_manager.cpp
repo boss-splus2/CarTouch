@@ -221,7 +221,8 @@ bool BLEManager::_authenticateCommand(const String& password, uint16_t connHandl
     if (isUsingDefaultPassword()) return false;
     if (ctLoginLocked(_authLock, millis())) return false;
 
-    const char* expected = getConfig()->webPass;
+    char expected[16] = {};
+    getWebCredentialsSnapshot(nullptr, 0, expected, sizeof(expected));
     const size_t expectedLength = strlen(expected);
     const size_t passwordLength = password.length();
     uint8_t diff = (uint8_t)(expectedLength != passwordLength);
@@ -450,7 +451,6 @@ bool BLEManager::_startOta(uint32_t size, const String& password,
     _otaReceived = 0;
     gOtaHashMismatch = false;
 
-    const AppConfig* cfg = getConfig();
     if (isUsingDefaultPassword()) {  // never allow OTA with the public default
         _otaError = true;
         ctOtaLock().release(CT_OTA_OWNER_BLE);
@@ -463,7 +463,8 @@ bool BLEManager::_startOta(uint32_t size, const String& password,
     }
     {
         // constant-time comparison
-        const char* expected = cfg->webPass;
+        char expected[16] = {};
+        getWebCredentialsSnapshot(nullptr, 0, expected, sizeof(expected));
         size_t el = strlen(expected), pl = password.length();
         uint8_t diff = (uint8_t)(el != pl);
         for (size_t i = 0; i < el; ++i) diff |= (uint8_t)(expected[i] ^ (i < pl ? password[i] : 0));
