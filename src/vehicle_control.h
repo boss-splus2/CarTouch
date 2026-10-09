@@ -21,6 +21,7 @@
 #include "can_manager.h"
 #include "can_service.h"
 #include "ct_tx_guard.h"
+#include "ct_vehicle_tx.h"
 #include "ct_can_config.h"
 #include "active_profile_manager.h"
 
@@ -137,23 +138,17 @@ private:
         ACTUATOR_SUNROOF,
         ACTUATOR_MIRROR
     };
-    static const uint32_t ACTUATOR_DUTY_WINDOW_MS       = 10000;  // Rolling window
-    static const uint8_t  ACTUATOR_DUTY_MAX_ACTIVATIONS = 6;      // Max activations per window
-    static const uint32_t ACTUATOR_DUTY_COOLDOWN_MS     = 5000;   // Forced rest once the cap is hit
+    static const uint32_t ACTUATOR_DUTY_WINDOW_MS = CT_DUTY_WINDOW_MS;
+    static const uint8_t ACTUATOR_DUTY_MAX_ACTIVATIONS = CT_DUTY_MAX_ACTIVATIONS;
+    static const uint32_t ACTUATOR_DUTY_COOLDOWN_MS = CT_DUTY_COOLDOWN_MS;
 
-    struct ActuatorDutyState {
-        uint32_t activationTimestamps[ACTUATOR_DUTY_MAX_ACTIVATIONS];  // Circular buffer
-        uint8_t  count;                                                // Entries recorded so far
-        uint8_t  nextSlot;                                             // Next write index
-        uint32_t cooldownUntil;                                        // 0 = no active cooldown
-    };
-    ActuatorDutyState _windowDuty;
-    ActuatorDutyState _sunroofDuty;
-    ActuatorDutyState _mirrorDuty;
+    CtDutyState _windowDuty = {};
+    CtDutyState _sunroofDuty = {};
+    CtDutyState _mirrorDuty = {};
 
     bool _checkDutyCycle(ActuatorClass cls, String& outErrorReason);
     void _recordDutyCycle(ActuatorClass cls);
-    ActuatorDutyState* _dutyStateFor(ActuatorClass cls);
+    CtDutyState* _dutyStateFor(ActuatorClass cls);
 
     // Legacy convenience classification used only for built-in UI labels.
     // Custom learned/manual commands use persisted actuator metadata.

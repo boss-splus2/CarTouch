@@ -75,6 +75,8 @@ private:
     WiFiState _state;
     bool       _enabled;
     bool       _apUp = false;
+    bool       _apStartFailed = false; // retry AP startup after transient driver failures
+    uint32_t   _apRetryAt = 0;
     bool       _pending = false;     // requestConnect() waiting for update()
     bool       _connecting = false;  // a STA attempt is in progress
     bool       _saveOnConnect = false;

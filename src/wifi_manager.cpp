@@ -33,6 +33,8 @@ void WiFiManager::begin(uint8_t mode) {
 
     switch (mode) {
         case 0:
+            _apStartFailed = false; // explicit OFF must not be auto-restarted
+            _apUp = false;
             WiFi.mode(WIFI_OFF);
             _state = CT_WIFI_DISABLED;
             Serial.println("[WiFi] WiFi turned off");
@@ -67,52 +69,83 @@ static void apPassword(char* out, size_t outSize) {
 }
 
 void WiFiManager::_startAP() {
+    const bool staWasConnected = WiFi.status() == WL_CONNECTED;
+    const bool keepStaMode = staWasConnected || _connecting;
     _apUp = false;
-    WiFi.mode(WIFI_AP);
-    delay(100); // allow the ESP-IDF Wi-Fi driver to enter AP mode
+    _apStartFailed = true;
+    WiFi.mode(keepStaMode ? WIFI_AP_STA : WIFI_AP);
+    delay(150); // let the ESP-IDF driver settle before configuring the AP
 
-    // apPassword() is always >= 8 characters, so this remains WPA2-PSK.
-    // Retry once after resetting AP mode; a failed first start must not leave
-    // the device silently without a discoverable network.
+    // Configure the AP gateway explicitly. Relying on inherited netif state
+    // can leave DHCP/IP inconsistent after AP/STA mode transitions or scans.
+    const IPAddress apIp(192, 168, 4, 1);
+    const IPAddress apMask(255, 255, 255, 0);
+    if (!WiFi.softAPConfig(apIp, apIp, apMask)) {
+        Serial.println("[WiFi] Warning: softAPConfig failed; continuing with driver defaults");
+    }
+
+    // Copy the key under the credentials lock, then release it before Wi-Fi
+    // APIs. WPA2 keys remain 8..15 characters; never start an open AP.
     char apKey[16] = {};
     apPassword(apKey, sizeof(apKey));
-    bool result = WiFi.softAP(WIFI_AP_NAME, apKey, WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
-    if (!result) {
-        Serial.println("[WiFi] AP start attempt 1 failed; resetting AP mode");
-        WiFi.softAPdisconnect(true);
-        WiFi.mode(WIFI_OFF);
-        delay(150);
-        WiFi.mode(WIFI_AP);
-        delay(150);
-        result = WiFi.softAP(WIFI_AP_NAME, apKey, WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
+
+    bool started = false;
+    IPAddress apIpNow(0, 0, 0, 0);
+    for (uint8_t attempt = 0; attempt < 2; ++attempt) {
+        if (attempt != 0) {
+            Serial.println("[WiFi] AP retry: resetting Wi-Fi driver mode");
+            WiFi.softAPdisconnect(true);
+            if (!keepStaMode) WiFi.mode(WIFI_OFF);
+            delay(200);
+            WiFi.mode(keepStaMode ? WIFI_AP_STA : WIFI_AP);
+            delay(200);
+            if (!WiFi.softAPConfig(apIp, apIp, apMask)) {
+                Serial.println("[WiFi] Warning: softAPConfig retry failed");
+            }
+        }
+
+        started = WiFi.softAP(WIFI_AP_NAME, apKey, WIFI_AP_CHANNEL, 0,
+                              WIFI_AP_MAX_CLIENTS);
+        // softAP() may return before the AP interface has a usable IP. Wait
+        // boundedly before treating that as a failed startup.
+        if (started) {
+            const uint32_t waitStart = millis();
+            do {
+                apIpNow = WiFi.softAPIP();
+                if (apIpNow != IPAddress(0, 0, 0, 0)) break;
+                delay(50);
+            } while ((uint32_t)(millis() - waitStart) < 1500);
+        }
+        if (started && apIpNow != IPAddress(0, 0, 0, 0)) break;
+        started = false;
     }
     memset(apKey, 0, sizeof(apKey));
 
-    if (result && WiFi.softAPIP() != IPAddress(0, 0, 0, 0)) {
+    if (started && apIpNow != IPAddress(0, 0, 0, 0)) {
         _apUp = true;
-        _state = CT_WIFI_AP;
-        Serial.printf("[WiFi] Access Point: %s | IP: %s\n",
-                      WIFI_AP_NAME, WiFi.softAPIP().toString().c_str());
+        _apStartFailed = false;
+        _apRetryAt = 0;
+        _state = staWasConnected ? CT_WIFI_STA : CT_WIFI_AP;
+        Serial.printf("[WiFi] Access Point: %s | IP: %s | channel: %u\n",
+                      WIFI_AP_NAME, apIpNow.toString().c_str(), WIFI_AP_CHANNEL);
         Serial.println("[WiFi] AP password = device password (not printed)");
     } else {
         _apUp = false;
-        _state = CT_WIFI_DISABLED;
-        Serial.printf("[WiFi] ERROR: Access Point '%s' failed after retry; check boot log, power, board target and ESP-IDF Wi-Fi errors\n", WIFI_AP_NAME);
+        _apStartFailed = true;
+        _apRetryAt = millis() + 10000UL;
+        _state = staWasConnected ? CT_WIFI_STA :
+                 (_connecting ? _state : CT_WIFI_DISABLED);
+        Serial.printf("[WiFi] ERROR: AP '%s' failed after retries; will retry in 10 seconds\n",
+                      WIFI_AP_NAME);
     }
 }
 
-// ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
-// ○○○○○○○○○○ Station mode
-// ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
-
 void WiFiManager::_beginSta(const char* ssid, const char* pass) {
+    // Establish the local AP first. Do not assume a previous AP survived a
+    // failed startup or mode transition; this is also the recovery path.
+    if (!_apUp) _startAP();
     WiFi.mode(WIFI_AP_STA);
-    if (!_apUp) {
-        char apKey[16];
-        apPassword(apKey, sizeof(apKey));
-        _apUp = WiFi.softAP(WIFI_AP_NAME, apKey, WIFI_AP_CHANNEL, 0, WIFI_AP_MAX_CLIENTS);
-        memset(apKey, 0, sizeof(apKey));
-    }
+    delay(100);
     WiFi.begin(ssid, pass);
     _connecting = true;
     _connectStart = millis();
@@ -163,8 +196,21 @@ void WiFiManager::forgetNetwork() {
 }
 
 void WiFiManager::update() {
-    if (!_enabled || _state == CT_WIFI_DISABLED) return;
+    if (!_enabled) return;
     const uint32_t now = millis();
+
+    // Previously a transient AP startup failure became permanent: the
+    // disabled-state early return prevented all later recovery attempts.
+    // Retry only after a real startup failure; explicit mode=OFF stays off.
+    if (_apStartFailed && (int32_t)(now - _apRetryAt) >= 0) {
+        // If STA is already connected, _startAP preserves AP+STA mode so the
+        // recovery attempt does not deliberately tear down the router link.
+        _startAP();
+    }
+    // If a saved router connection is in progress, continue supervising it
+    // even while the AP is temporarily down. Otherwise remain idle until the
+    // scheduled AP retry (explicit OFF never sets _apStartFailed).
+    if (_state == CT_WIFI_DISABLED && !_connecting) return;
 
     if (_pending) {
         _pending = false;
@@ -195,7 +241,8 @@ void WiFiManager::update() {
             getErrorLog()->log(LOG_CAT_WIFI, LOG_WARN, "Router connect timed out - AP only");
             WiFi.disconnect(false);
             WiFi.mode(WIFI_AP);
-            _state = CT_WIFI_AP;
+            _state = _apUp ? CT_WIFI_AP : CT_WIFI_DISABLED;
+            if (!_apUp && _apStartFailed) _apRetryAt = now + 10000UL;
         }
         return;
     }
@@ -225,6 +272,8 @@ void WiFiManager::update() {
 
 void WiFiManager::disconnect() {
     _apUp = false;
+    _apStartFailed = false;
+    _apRetryAt = 0;
     _pending = false;
     _connecting = false;
     WiFi.disconnect(true);

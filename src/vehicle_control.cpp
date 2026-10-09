@@ -45,9 +45,6 @@ VehicleControl::VehicleControl(CANService& canService, ActiveProfileManager& pro
     _lastErrorMessage   = "";
     _lastCommandTime     = 0;
 
-    memset(&_windowDuty,  0, sizeof(_windowDuty));
-    memset(&_sunroofDuty, 0, sizeof(_sunroofDuty));
-    memset(&_mirrorDuty,  0, sizeof(_mirrorDuty));
 }
 
 void VehicleControl::begin() {
@@ -78,69 +75,51 @@ bool VehicleControl::_sendResolvedMessage(const CanMessage& msg) {
     const CanBusId bus = selectedBus();
     const char* busName = bus == CAN_BUS_2 ? "CAN2" : "CAN1";
 
-    const CtTxGuardResult admission = ctVehicleTxGuard(
-        configListenOnlyFor(bus), _can.isActive(bus),
-        _can.isListenOnlyActive(bus), msg.length);
-    if (admission != CT_TX_OK || !ctTxIdValid(msg.id, msg.isExtended)) {
-        _lastError = admission == CT_TX_ERR_LISTEN_ONLY ? 1 : 2;
-        if (admission == CT_TX_ERR_LISTEN_ONLY) {
+    // Single firmware call site for the shared, unit-tested TX admission,
+    // rate-limit and send chain; do not duplicate these checks here.
+    const CtVehicleTxResult result = ctVehicleTxSend(
+        _can, bus, configListenOnlyFor(bus), msg, millis(), _lastCommandTime,
+        MIN_COMMAND_INTERVAL_MS);
+
+    switch (result) {
+        case CT_VTX_SENT:
+            Serial.printf("[CTRL] Command sent on %s: ID=0x%03lX, data=", busName,
+                          (unsigned long)msg.id);
+            for (int i = 0; i < msg.length; i++) Serial.printf("%02X ", msg.data[i]);
+            Serial.println();
+            _lastError = 0;
+            _lastErrorMessage = "";
+            return true;
+        case CT_VTX_LISTEN_ONLY:
             Serial.printf("[CTRL] %s is in Listen-Only mode - command not sent\n", busName);
+            _lastError = 1;
             _lastErrorMessage = "Listen-Only mode is active";
-        } else if (admission == CT_TX_ERR_NOT_INITIALIZED) {
+            break;
+        case CT_VTX_NOT_READY:
             Serial.printf("[CTRL] %s is not ready - command not sent\n", busName);
+            _lastError = 2;
             _lastErrorMessage = "Selected CAN channel is not ready";
-        } else {
+            break;
+        case CT_VTX_RATE_LIMITED:
+            Serial.println("[CTRL] Command rejected - rate limit");
+            _lastError = 3;
+            _lastErrorMessage = "Commands sent too rapidly (rate limit)";
+            break;
+        case CT_VTX_INVALID_FRAME:
             Serial.printf("[CTRL] Invalid frame for %s - command not sent\n", busName);
+            _lastError = 2;
             _lastErrorMessage = "Invalid CAN frame (ID or length)";
-        }
-        return false;
+            break;
+        case CT_VTX_SEND_FAILED:
+        default:
+            _lastError = 2;
+            _lastErrorMessage = "CAN Bus send failed";
+            break;
     }
-
-    uint32_t now = millis();
-    if (now - _lastCommandTime < MIN_COMMAND_INTERVAL_MS) {
-        Serial.println("[CTRL] Command rejected - rate limit");
-        _lastError = 3;
-        _lastErrorMessage = "Commands sent too rapidly (rate limit)";
-        return false;
-    }
-    _lastCommandTime = now;
-
-    if (_can.sendMessage(bus, msg)) {
-        Serial.printf("[CTRL] Command sent on %s: ID=0x%03lX, data=", busName, (unsigned long)msg.id);
-        for (int i = 0; i < msg.length; i++) {
-            Serial.printf("%02X ", msg.data[i]);
-        }
-        Serial.println();
-        _lastError = 0;
-        _lastErrorMessage = "";
-        return true;
-    }
-
-    _lastError = 2;
-    _lastErrorMessage = "CAN Bus send failed";
     return false;
 }
 
-// ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
-// ○○○○○○○○○○ Mechanical duty-cycle protection
-// ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
-
-//
-// Prevents sustained or rapid-fire activation of a single motorized
-// actuator (window/sunroof/mirror), which MIN_COMMAND_INTERVAL_MS alone
-// does not cover - it only spaces out consecutive commands regardless of
-// target actuator.
-//
-// A circular buffer of activation timestamps is kept per actuator class.
-// Once ACTUATOR_DUTY_MAX_ACTIVATIONS occur within ACTUATOR_DUTY_WINDOW_MS,
-// a cooldown starts during which no further command for that class is
-// accepted, regardless of direction (up/down, open/close).
-//
-// NOTE: this is a software-level approximation, not a real current/
-// temperature measurement. The defaults (6 activations / 10s, 5s cooldown)
-// are conservative starting points and may need tuning per vehicle.
-
-VehicleControl::ActuatorDutyState* VehicleControl::_dutyStateFor(ActuatorClass cls) {
+CtDutyState* VehicleControl::_dutyStateFor(ActuatorClass cls) {
     switch (cls) {
         case ACTUATOR_WINDOW:  return &_windowDuty;
         case ACTUATOR_SUNROOF: return &_sunroofDuty;
@@ -162,61 +141,21 @@ VehicleControl::ActuatorClass VehicleControl::_classifyLabel(const char* label) 
 }
 
 bool VehicleControl::_checkDutyCycle(ActuatorClass cls, String& outErrorReason) {
-    ActuatorDutyState* state = _dutyStateFor(cls);
+    CtDutyState* state = _dutyStateFor(cls);
     if (!state) return true;  // ACTUATOR_NONE: no limit applies
 
-    uint32_t now = millis();
-
-    // Reject outright while cooling down
-    if (state->cooldownUntil != 0) {
-        // Wrap-safe: the cooldown itself is only a few seconds, so the
-        // signed difference remains correct across a millis() rollover
-        // (a plain "now < cooldownUntil" test would not).
-        if ((int32_t)(now - state->cooldownUntil) < 0) {
-            outErrorReason = "This component needs a brief rest after recent repeated use";
-            return false;
-        }
-        // Cooldown elapsed - reset for a fresh window
-        state->cooldownUntil = 0;
-        state->count    = 0;
-        state->nextSlot = 0;
-    }
-
-    // Count activations still inside the rolling window (no array
-    // compaction needed - just a conditional count)
-    uint8_t recentCount = 0;
-    for (uint8_t i = 0; i < state->count; i++) {
-        if (now - state->activationTimestamps[i] <= ACTUATOR_DUTY_WINDOW_MS) {
-            recentCount++;
-        }
-    }
-
-    if (recentCount >= ACTUATOR_DUTY_MAX_ACTIVATIONS) {
-        uint32_t until = now + ACTUATOR_DUTY_COOLDOWN_MS;
-        // 0 is the "no cooldown" sentinel - avoid colliding with it.
-        state->cooldownUntil = (until == 0) ? 1 : until;
-        outErrorReason = "Too many activations in a short period - please wait a few seconds";
-        return false;
-    }
-
-    return true;
+    const CtDutyResult result = ctDutyCheck(state, millis());
+    if (result == CT_DUTY_OK) return true;
+    outErrorReason = result == CT_DUTY_COOLDOWN
+        ? "This component needs a brief rest after recent repeated use"
+        : "Too many activations in a short period - please wait a few seconds";
+    return false;
 }
 
 void VehicleControl::_recordDutyCycle(ActuatorClass cls) {
-    ActuatorDutyState* state = _dutyStateFor(cls);
-    if (!state) return;
-
-    uint32_t now = millis();
-    state->activationTimestamps[state->nextSlot] = now;
-    state->nextSlot = (state->nextSlot + 1) % ACTUATOR_DUTY_MAX_ACTIVATIONS;
-    if (state->count < ACTUATOR_DUTY_MAX_ACTIVATIONS) {
-        state->count++;
-    }
+    CtDutyState* state = _dutyStateFor(cls);
+    if (state) ctDutyRecord(state, millis());
 }
-
-// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-// □□□□□□□□□□ Label execution
-// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool VehicleControl::_execute(const char* label, String& outErrorReason, bool forVerification, int8_t explicitActuatorClass) {
     CtCtrlLock lock(_mutex);
