@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "ct_tx_guard.h"
+#include "ct_vehicle_tx.h"
 #include "ct_index_parser.h"
 #include "ct_time.h"
 #include "ct_hex_parser.h"
@@ -716,6 +717,60 @@ void test_vehicle_tx_guard_blocks_when_config_or_driver_listen_only() {
     TEST_ASSERT_EQUAL(CT_TX_ERR_NOT_INITIALIZED, ctVehicleTxGuard(false, false, false, 8));
     TEST_ASSERT_EQUAL(CT_TX_ERR_LENGTH, ctVehicleTxGuard(false, true, false, 9));
     TEST_ASSERT_EQUAL(CT_TX_OK, ctVehicleTxGuard(false, true, false, 8));
+}
+
+class MockVehicleTxService {
+public:
+    bool active = true;
+    bool listenOnly = false;
+    bool sendResult = true;
+    uint8_t sendCalls = 0;
+
+    bool isActive(int) const { return active; }
+    bool isListenOnlyActive(int) const { return listenOnly; }
+    bool sendMessage(int, const CanMessage&) {
+        ++sendCalls;
+        return sendResult;
+    }
+};
+
+void test_vehicle_tx_pipeline_blocks_unsafe_and_rate_limited_frames() {
+    MockVehicleTxService service;
+    CanMessage msg = {};
+    msg.id = 0x123;
+    msg.length = 1;
+    uint32_t lastCommandTime = 0;
+
+    TEST_ASSERT_EQUAL(CT_VTX_RATE_LIMITED,
+        ctVehicleTxSend(service, 0, false, msg, 100, lastCommandTime, 150));
+    TEST_ASSERT_EQUAL_UINT8(0, service.sendCalls);
+
+    TEST_ASSERT_EQUAL(CT_VTX_SENT,
+        ctVehicleTxSend(service, 0, false, msg, 150, lastCommandTime, 150));
+    TEST_ASSERT_EQUAL_UINT8(1, service.sendCalls);
+    TEST_ASSERT_EQUAL_UINT32(150, lastCommandTime);
+
+    service.listenOnly = true;
+    TEST_ASSERT_EQUAL(CT_VTX_LISTEN_ONLY,
+        ctVehicleTxSend(service, 0, false, msg, 400, lastCommandTime, 150));
+    TEST_ASSERT_EQUAL_UINT8(1, service.sendCalls);
+
+    service.listenOnly = false;
+    service.active = false;
+    TEST_ASSERT_EQUAL(CT_VTX_NOT_READY,
+        ctVehicleTxSend(service, 0, false, msg, 400, lastCommandTime, 150));
+    TEST_ASSERT_EQUAL_UINT8(1, service.sendCalls);
+}
+
+void test_vehicle_duty_cycle_pipeline_enforces_cooldown() {
+    CtDutyState state = {};
+    for (uint32_t t = 100; t <= 600; t += 100) {
+        TEST_ASSERT_EQUAL(CT_DUTY_OK, ctDutyCheck(&state, t));
+        ctDutyRecord(&state, t);
+    }
+    TEST_ASSERT_EQUAL(CT_DUTY_LIMIT, ctDutyCheck(&state, 700));
+    TEST_ASSERT_EQUAL(CT_DUTY_COOLDOWN, ctDutyCheck(&state, 701));
+    TEST_ASSERT_EQUAL(CT_DUTY_OK, ctDutyCheck(&state, 5700));
 }
 
 void test_bus_route_selector_is_sanitised() {
@@ -1489,6 +1544,8 @@ int main(int, char**) {
     RUN_TEST(test_label_safe_rejects_html_and_quotes);
     RUN_TEST(test_origin_guard_blocks_cross_site_only);
     RUN_TEST(test_vehicle_tx_guard_blocks_when_config_or_driver_listen_only);
+    RUN_TEST(test_vehicle_tx_pipeline_blocks_unsafe_and_rate_limited_frames);
+    RUN_TEST(test_vehicle_duty_cycle_pipeline_enforces_cooldown);
     RUN_TEST(test_bus_route_selector_is_sanitised);
     RUN_TEST(test_mcp2515_8mhz_timing_table_decodes_to_requested_bitrates);
     RUN_TEST(test_can_link_state_requires_real_traffic);
