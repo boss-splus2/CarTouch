@@ -391,11 +391,11 @@ jobs:
           retention-days: 1
 
   # Always runs last (success, failure or cancellation). It puts the check
-  # report and the logs of all other jobs into ONE download, "ci-report":
-  #   ci-report/report/   results of the checks and tests
-  #   ci-report/logs/     run-summary.txt, jobs.json and one .log per job
+  # report and the logs of all other jobs into two small downloads:
+  #   ci-report   results of the checks and tests
+  #   logs        run-summary.txt, jobs.json and one .log per job
   # Together with "cartouch-firmware" (only when every build is green) the run
-  # always ends with the same two downloads. A problem here never turns the
+  # always ends with the same three downloads. A problem here never turns the
   # run red (continue-on-error).
   logs:
     name: Collect run logs
@@ -420,20 +420,20 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ci-report-part
-          path: ci-report/report
+          path: ci-report
 
       - name: Download job logs
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/collect_run_logs.py ci-report/logs
+        run: python3 scripts/collect_run_logs.py logs
 
       - name: Write run summary
         if: always()
         run: |
           {
-            echo '### Run logs (download artifact "ci-report", folder logs/)'
+            echo '### Run logs (download artifact "logs")'
             echo '```'
-            cat ci-report/logs/run-summary.txt 2>/dev/null || echo 'no summary was produced'
+            cat logs/run-summary.txt 2>/dev/null || echo 'no summary was produced'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -443,6 +443,15 @@ jobs:
         with:
           name: ci-report
           path: ci-report
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: logs
+          path: logs
           if-no-files-found: warn
           retention-days: 14
 
