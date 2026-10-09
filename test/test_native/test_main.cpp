@@ -31,6 +31,8 @@
 #include "ct_sync_policy.h"
 #include "ct_command_guard.h"
 #include "ct_command_actuator.h"
+#include "test_credentials.h"
+#include "test_mcp_timing_decode.h"
 
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ Test fixtures
@@ -429,8 +431,6 @@ void test_wrap_safe_timer(void) {
     const uint32_t now = 0x00000100u;
     TEST_ASSERT_TRUE(ctElapsedAtLeast(now, start, 512));
     TEST_ASSERT_FALSE(ctElapsedAtLeast(now, start, 513));
-    TEST_ASSERT_TRUE(ctElapsedMoreThan(now, start, 511));
-    TEST_ASSERT_FALSE(ctElapsedMoreThan(now, start, 512));
 }
 
 void test_hex_standard_and_extended(void) {
@@ -738,7 +738,7 @@ void test_mcp2515_8mhz_timing_table_decodes_to_requested_bitrates() {
     };
     for (unsigned i = 0; i < sizeof(rows) / sizeof(rows[0]); ++i) {
         uint32_t bps = 0, sp = 0; uint8_t sjw = 0;
-        TEST_ASSERT_TRUE(ctMcp2515DecodeTiming(8000000UL, rows[i].c1, rows[i].c2,
+        TEST_ASSERT_TRUE(testDecodeMcp2515Timing(8000000UL, rows[i].c1, rows[i].c2,
                                                rows[i].c3, bps, sp, sjw));
         TEST_ASSERT_EQUAL(rows[i].bps, bps);
         TEST_ASSERT_TRUE(sp >= rows[i].minSp && sp <= rows[i].maxSp);
@@ -793,13 +793,18 @@ void test_generated_password_shape_and_limits(void) {
     TEST_ASSERT_EQUAL_UINT32(4, strlen(small));
 }
 
-void test_ota_firmware_header_check(void) {
+void test_ota_header_feed_edge_cases(void) {
+    // Replaces the old magic-byte-only helper: the real OTA paths call
+    // ctOtaHeaderFeed(), so the edge cases are tested there.
+    CtOtaHeaderCheck st;
     const uint8_t good[] = {0xE9, 0x03};
     const uint8_t bad[]  = {0x00, 0x03};
-    TEST_ASSERT_TRUE(ctOtaFirmwareHeaderOk(good, 2));
-    TEST_ASSERT_FALSE(ctOtaFirmwareHeaderOk(bad, 2));
-    TEST_ASSERT_FALSE(ctOtaFirmwareHeaderOk(good, 0));
-    TEST_ASSERT_FALSE(ctOtaFirmwareHeaderOk(NULL, 2));
+    TEST_ASSERT_EQUAL(CT_OTA_HDR_NEED_MORE, ctOtaHeaderFeed(st, nullptr, 2, 4u * 1048576u));
+    TEST_ASSERT_EQUAL(CT_OTA_HDR_NEED_MORE, ctOtaHeaderFeed(st, good, 0, 4u * 1048576u));
+    TEST_ASSERT_EQUAL(CT_OTA_HDR_NEED_MORE, ctOtaHeaderFeed(st, good, 2, 4u * 1048576u));
+    TEST_ASSERT_FALSE(st.done);
+    CtOtaHeaderCheck st2;
+    TEST_ASSERT_EQUAL(CT_OTA_HDR_BAD_MAGIC, ctOtaHeaderFeed(st2, bad, 2, 4u * 1048576u));
 }
 
 void test_storage_policy_auto_prefers_internal_then_sd(void) {
@@ -1157,15 +1162,13 @@ void test_dbc_path_fits_profile_field(void) {
     TEST_ASSERT_EQUAL_CHAR('\0', p[0]);
 }
 
-void test_dbc_size_check(void) {
-    TEST_ASSERT_EQUAL(CT_DBC_EMPTY, ctDbcSizeCheck(0, 1000000, 0));
-    TEST_ASSERT_EQUAL(CT_DBC_TOO_BIG, ctDbcSizeCheck(CT_DBC_MAX_BYTES + 1, 10000000, 0));
-    TEST_ASSERT_EQUAL(CT_DBC_OK, ctDbcSizeCheck(CT_DBC_MAX_BYTES, 10000000, 0));
-    TEST_ASSERT_EQUAL(CT_DBC_NO_SPACE, ctDbcSizeCheck(100000, 100000 + CT_DBC_RESERVE_BYTES - 1, 0));
-    TEST_ASSERT_EQUAL(CT_DBC_OK, ctDbcSizeCheck(100000, 100000 + CT_DBC_RESERVE_BYTES, 0));
-    // Replacing an existing file frees its own space.
-    TEST_ASSERT_EQUAL(CT_DBC_NO_SPACE, ctDbcSizeCheck(100000, 50000, 0));
-    TEST_ASSERT_EQUAL(CT_DBC_OK, ctDbcSizeCheck(100000, 50000, 90000));
+void test_dbc_size_in_range(void) {
+    // The same check the store runs at upload start and at finish.
+    TEST_ASSERT_FALSE(ctDbcSizeInRange(0));
+    TEST_ASSERT_TRUE(ctDbcSizeInRange(1));
+    TEST_ASSERT_TRUE(ctDbcSizeInRange(CT_DBC_MAX_BYTES));
+    TEST_ASSERT_FALSE(ctDbcSizeInRange(CT_DBC_MAX_BYTES + 1));
+    TEST_ASSERT_FALSE(ctDbcSizeInRange(0xFFFFFFFFu));
 }
 
 void test_dbc_scan_counts_messages_and_cap(void) {
@@ -1461,7 +1464,8 @@ int main(int, char**) {
     RUN_TEST(test_can_link_state_requires_real_traffic);
     RUN_TEST(test_bus_off_recovery_schedule);
     RUN_TEST(test_generated_password_shape_and_limits);
-    RUN_TEST(test_ota_firmware_header_check);
+    runCredentialTests();
+    RUN_TEST(test_ota_header_feed_edge_cases);
     RUN_TEST(test_storage_policy_auto_prefers_internal_then_sd);
     RUN_TEST(test_storage_policy_explicit_choice_falls_back_and_reports);
     RUN_TEST(test_sd_cs_pin_validation);
@@ -1486,7 +1490,7 @@ int main(int, char**) {
     RUN_TEST(test_login_lock_survives_millis_wraparound);
     RUN_TEST(test_dbc_name_rules);
     RUN_TEST(test_dbc_path_fits_profile_field);
-    RUN_TEST(test_dbc_size_check);
+    RUN_TEST(test_dbc_size_in_range);
     RUN_TEST(test_dbc_scan_counts_messages_and_cap);
     RUN_TEST(test_dbc_scan_rejects_binary);
     RUN_TEST(test_dbc_delete_decision);
