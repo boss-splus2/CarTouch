@@ -11,8 +11,10 @@ ESP-IDF TWAI driver call twai_transmit*().
 
 Approved .cpp callers: the drivers (can_manager.cpp, mcp2515_can_interface.cpp),
 the router (can_service.cpp), OBD-II (obd2_reader.cpp) and vehicle commands
-(vehicle_control.cpp). Approved headers only declare the interface.
-Anything else fails the check.
+(vehicle_control.cpp). The inline helper ct_vehicle_tx.h is also approved: it
+contains the explicit guarded admission/rate-limit/send chain used by
+VehicleControl and is unit-tested natively. Other headers may only declare
+interfaces; any other call site fails the check.
 Exit code 0 = ok, 1 = a forbidden file transmits.
 """
 import re
@@ -28,7 +30,7 @@ ALLOWED = {
     "obd2_reader.cpp", "vehicle_control.cpp",
     # declarations of the interface (no call sites)
     "can_interface.h", "can_manager.h", "can_service.h",
-    "mcp2515_can_interface.h",
+    "mcp2515_can_interface.h", "ct_vehicle_tx.h",
 }
 
 TX_CALL = re.compile(r"\b(sendMessage|twai_transmit\w*)\s*\(")
