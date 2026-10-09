@@ -23,6 +23,8 @@
 #include "ct_password.h"
 #include "ct_ota_header.h"
 #include "ct_ota_lock.h"
+#include "ct_ota_authenticity.h"
+#include "ct_credentials.h"
 #include "ct_sha256.h"
 
 #include "ct_hex_parser.h"
@@ -62,6 +64,7 @@ static const size_t HTTP_FORM_BODY_LIMIT = 2048u;
 static const size_t PROFILE_IMPORT_BODY_LIMIT = MAX_IMPORT_JSON_LEN * 3u + 32u;
 static CtSha256 gOtaSha256;
 static char gOtaExpectedSha256[65] = {};
+static char gOtaSignatureHex[CT_OTA_SIG_HEX_MAX + 1] = {};   // optional "sig" query parameter
 
 class HttpBodyLimitHandler : public AsyncWebHandler {
 public:
@@ -1593,6 +1596,7 @@ void WebServerManager::_handleOtaUpload(AsyncWebServerRequest* request, const St
         _otaBytes = 0;
         gOtaHeader.reset();
         gOtaExpectedSha256[0] = '\0';
+        gOtaSignatureHex[0]   = '\0';
         ctSha256Init(gOtaSha256);
         _otaIsFs  = request->hasParam("type") && request->getParam("type")->value() == "fs";
 
@@ -1607,6 +1611,16 @@ void WebServerManager::_handleOtaUpload(AsyncWebServerRequest* request, const St
         }
         strncpy(gOtaExpectedSha256, expectedHash.c_str(), sizeof(gOtaExpectedSha256) - 1);
         gOtaExpectedSha256[sizeof(gOtaExpectedSha256) - 1] = '\0';
+
+        // Optional release signature (hex, DER). Only product mode requires it;
+        // an over-long value is dropped, never truncated into a different one.
+        if (request->hasParam("sig", false)) {
+            const String sig = request->getParam("sig", false)->value();
+            if (sig.length() <= CT_OTA_SIG_HEX_MAX) {
+                strncpy(gOtaSignatureHex, sig.c_str(), sizeof(gOtaSignatureHex) - 1);
+                gOtaSignatureHex[sizeof(gOtaSignatureHex) - 1] = '\0';
+            }
+        }
 
         if (!ctPartitionFitsFlash(ESP.getFlashChipSize(), CT_REQUIRED_FLASH_BYTES)) {
             _otaError = "Update blocked: detected flash is smaller than the configured partition layout.";
@@ -1684,6 +1698,14 @@ void WebServerManager::_handleOtaUpload(AsyncWebServerRequest* request, const St
         ctSha256FinishHex(gOtaSha256, actualHash);
         if (!ctSha256HexEqual(actualHash, gOtaExpectedSha256)) {
             _otaError = "SHA-256 mismatch: uploaded image does not match the supplied digest";
+            if (Update.isRunning()) Update.abort();
+            return;
+        }
+        // Personal mode: always true (legacy SHA-256 + header behaviour).
+        // Product mode: a valid release signature is required before Update.end().
+        if (!ctOtaVerifyAuthenticity(CT_PRODUCT_MODE != 0, actualHash,
+                                     gOtaSignatureHex, ctOtaVerifySignature)) {
+            _otaError = "Signature missing or invalid: this build only accepts signed firmware";
             if (Update.isRunning()) Update.abort();
             return;
         }

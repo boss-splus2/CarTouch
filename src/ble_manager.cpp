@@ -5,6 +5,8 @@
 #include "ct_password.h"
 #include "ct_ota_header.h"
 #include "ct_ota_lock.h"
+#include "ct_ota_authenticity.h"
+#include "ct_credentials.h"
 #include "ct_sha256.h"
 #include "ct_index_parser.h"
 #include "sd_storage.h"
@@ -534,6 +536,15 @@ bool BLEManager::_finishOta() {
         Serial.println("[BLE OTA] SHA-256 mismatch");
         _otaError = true;
         gOtaHashMismatch = true;
+        _abortOta();
+        return false;
+    }
+    // BLE has no signature channel yet: personal mode passes, product mode
+    // fails closed (no signature supplied) until one is added.
+    if (!ctOtaVerifyAuthenticity(CT_PRODUCT_MODE != 0, actualHash, nullptr,
+                                 ctOtaVerifySignature)) {
+        Serial.println("[BLE OTA] Signature required");
+        _otaError = true;
         _abortOta();
         return false;
     }
