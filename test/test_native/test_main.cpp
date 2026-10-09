@@ -31,6 +31,7 @@
 #include "ct_sync_policy.h"
 #include "ct_command_guard.h"
 #include "ct_command_actuator.h"
+#include "ct_ota_authenticity.h"
 #include "test_credentials.h"
 #include "test_mcp_timing_decode.h"
 
@@ -793,6 +794,35 @@ void test_generated_password_shape_and_limits(void) {
     TEST_ASSERT_EQUAL_UINT32(4, strlen(small));
 }
 
+// ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
+// ○○○○○○○○○○ OTA authenticity
+// ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
+
+static const char* kAuthDigest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+static const char* kAuthSig    = "3044022001020304050607080910111213141516171819202122232425262728";
+static int s_authVerifierCalls = 0;
+static bool authAcceptAll(const char*, const char*) { ++s_authVerifierCalls; return true; }
+static bool authRejectAll(const char*, const char*) { ++s_authVerifierCalls; return false; }
+
+void test_ota_authenticity_personal_mode_keeps_legacy_behaviour(void) {
+    s_authVerifierCalls = 0;
+    TEST_ASSERT_TRUE(ctOtaVerifyAuthenticity(false, kAuthDigest, nullptr, nullptr));
+    TEST_ASSERT_TRUE(ctOtaVerifyAuthenticity(false, kAuthDigest, "", authRejectAll));
+    TEST_ASSERT_EQUAL_INT(0, s_authVerifierCalls);
+}
+
+void test_ota_authenticity_product_mode_fails_closed(void) {
+    TEST_ASSERT_FALSE(ctOtaVerifyAuthenticity(true, kAuthDigest, nullptr, authAcceptAll));
+    TEST_ASSERT_FALSE(ctOtaVerifyAuthenticity(true, kAuthDigest, "", authAcceptAll));
+    TEST_ASSERT_FALSE(ctOtaVerifyAuthenticity(true, kAuthDigest, "zz44", authAcceptAll));
+    TEST_ASSERT_FALSE(ctOtaVerifyAuthenticity(true, "bad-digest", kAuthSig, authAcceptAll));
+    TEST_ASSERT_FALSE(ctOtaVerifyAuthenticity(true, kAuthDigest, kAuthSig, nullptr));
+    TEST_ASSERT_FALSE(ctOtaVerifyAuthenticity(true, kAuthDigest, kAuthSig, authRejectAll));
+    TEST_ASSERT_TRUE(ctOtaVerifyAuthenticity(true, kAuthDigest, kAuthSig, authAcceptAll));
+    // The device verifier is a stub off-target: it must refuse, never accept.
+    TEST_ASSERT_FALSE(ctOtaVerifyAuthenticity(true, kAuthDigest, kAuthSig, ctOtaVerifySignature));
+}
+
 void test_ota_header_feed_edge_cases(void) {
     // Replaces the old magic-byte-only helper: the real OTA paths call
     // ctOtaHeaderFeed(), so the edge cases are tested there.
@@ -1466,6 +1496,8 @@ int main(int, char**) {
     RUN_TEST(test_generated_password_shape_and_limits);
     runCredentialTests();
     RUN_TEST(test_ota_header_feed_edge_cases);
+    RUN_TEST(test_ota_authenticity_personal_mode_keeps_legacy_behaviour);
+    RUN_TEST(test_ota_authenticity_product_mode_fails_closed);
     RUN_TEST(test_storage_policy_auto_prefers_internal_then_sd);
     RUN_TEST(test_storage_policy_explicit_choice_falls_back_and_reports);
     RUN_TEST(test_sd_cs_pin_validation);
