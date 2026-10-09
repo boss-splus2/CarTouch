@@ -32,24 +32,28 @@
 #include "ct_command_guard.h"
 #include "ct_command_actuator.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Test fixtures
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 void setUp(void) {}
 void tearDown(void) {}
 
 class MockCanInterface : public CanInterface {
 public:
-    bool beginResult = true;
-    bool active = false;
-    bool listenOnly = true;
-    bool lastReconfigure = false;
-    uint8_t beginCalls = 0;
-    uint8_t sendCalls = 0;
-    uint8_t receiveCalls = 0;
-    uint8_t reconfigureCalls = 0;
-    uint32_t lastTxId = 0;
-    bool scriptedRx = false;
-    CanMessage rxFrames[64] = {};
-    uint8_t rxFrameCount = 0;
-    uint8_t rxFrameIndex = 0;
+    bool       beginResult      = true;
+    bool       active           = false;
+    bool       listenOnly       = true;
+    bool       lastReconfigure  = false;
+    uint8_t    beginCalls       = 0;
+    uint8_t    sendCalls        = 0;
+    uint8_t    receiveCalls     = 0;
+    uint8_t    reconfigureCalls = 0;
+    uint32_t   lastTxId         = 0;
+    bool       scriptedRx       = false;
+    CanMessage rxFrames[64]     = {};
+    uint8_t    rxFrameCount     = 0;
+    uint8_t    rxFrameIndex     = 0;
 
     bool begin() override {
         ++beginCalls;
@@ -98,6 +102,10 @@ public:
     }
     bool isListenOnlyActive() override { return active && listenOnly; }
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Test cases
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 void test_tx_guard_listen_only(void) {
     TEST_ASSERT_EQUAL(CT_TX_ERR_LISTEN_ONLY, ctTxGuard(true, true, 8));
@@ -182,7 +190,7 @@ void test_can_service_initializes_each_bus_independently(void) {
     MockCanInterface can0;
     MockCanInterface can1;
     can0.beginResult = false;
-    can1.beginResult = true; // Align with the new contract
+    can1.beginResult = true;  // Align with the new contract
     CANService service(can0, can1);
     TEST_ASSERT_TRUE(service.begin());
     TEST_ASSERT_EQUAL(1, can0.beginCalls);
@@ -474,11 +482,11 @@ void test_obd_rejects_wrong_service_or_pid(void) {
     TEST_ASSERT_FALSE(ctParseObdSingleFrame(frame, 8, 0x43, 0xFF, p));
 }
 void test_obd_clear_dtc_requires_positive_ecu_ack(void) {
-    const uint8_t positive[] = {0x01, 0x44, 0, 0, 0, 0, 0, 0};
-    const uint8_t negative[] = {0x03, 0x7F, 0x04, 0x22, 0, 0, 0, 0};
+    const uint8_t positive[]     = {0x01, 0x44, 0, 0, 0, 0, 0, 0};
+    const uint8_t negative[]     = {0x03, 0x7F, 0x04, 0x22, 0, 0, 0, 0};
     const uint8_t wrongService[] = {0x03, 0x7F, 0x03, 0x22, 0, 0, 0, 0};
-    const uint8_t malformed[] = {0x02, 0x7F, 0x04, 0, 0, 0, 0, 0};
-    uint8_t responseCode = 0;
+    const uint8_t malformed[]    = {0x02, 0x7F, 0x04, 0, 0, 0, 0, 0};
+    uint8_t       responseCode   = 0;
 
     TEST_ASSERT_TRUE(ctParseObdPositiveServiceAck(positive, sizeof(positive), 0x44));
     TEST_ASSERT_FALSE(ctParseObdPositiveServiceAck(positive, sizeof(positive), 0x43));
@@ -595,8 +603,6 @@ void test_verification_fingerprint_changes_with_command(void) {
     TEST_ASSERT_NOT_EQUAL(fa, ctVerifyFingerprint(2, 1, "lock", 0x123, false, 2, a));
     TEST_ASSERT_NOT_EQUAL(fa, ctVerifyFingerprint(1, 1, "unlock", 0x123, false, 2, a));
 }
-
-
 
 void test_dbc_extended_id_decode(void) {
     uint32_t id = 0;
@@ -768,7 +774,6 @@ void test_bus_off_recovery_schedule() {
     TEST_ASSERT_TRUE(ctRecoveryDue(true, 0xFFFFF000u, 0x00001000u, 5000));
 }
 
-
 static uint32_t s_fakeRndState = 12345u;
 static uint32_t fakeRnd(void) { s_fakeRndState = s_fakeRndState * 1664525u + 1013904223u; return s_fakeRndState; }
 
@@ -797,14 +802,13 @@ void test_ota_firmware_header_check(void) {
     TEST_ASSERT_FALSE(ctOtaFirmwareHeaderOk(NULL, 2));
 }
 
-
 void test_storage_policy_auto_prefers_internal_then_sd(void) {
     CtStorageDecision d = ctResolveStorage(CT_STORE_AUTO, true, 500000, true, 9000000, 1000);
     TEST_ASSERT_EQUAL_INT(CT_LOC_INTERNAL, d.loc);
-    d = ctResolveStorage(CT_STORE_AUTO, true, 1000, true, 9000000, 1000);   // internal nearly full
+    d = ctResolveStorage(CT_STORE_AUTO, true, 1000, true, 9000000, 1000);  // internal nearly full
     TEST_ASSERT_EQUAL_INT(CT_LOC_SD, d.loc);
     TEST_ASSERT_FALSE(d.fellBack);
-    d = ctResolveStorage(CT_STORE_AUTO, true, 1000, false, 0, 1000);        // no card: never drop silently
+    d = ctResolveStorage(CT_STORE_AUTO, true, 1000, false, 0, 1000);       // no card: never drop silently
     TEST_ASSERT_EQUAL_INT(CT_LOC_NONE, d.loc);
 }
 
@@ -818,7 +822,7 @@ void test_storage_policy_explicit_choice_falls_back_and_reports(void) {
     d = ctResolveStorage(CT_STORE_SD, true, 500000, true, 9000000, 1000);
     TEST_ASSERT_EQUAL_INT(CT_LOC_SD, d.loc);
     TEST_ASSERT_FALSE(d.fellBack);
-    d = ctResolveStorage(77, true, 500000, true, 9000000, 1000);            // invalid value behaves as AUTO
+    d = ctResolveStorage(77, true, 500000, true, 9000000, 1000);  // invalid value behaves as AUTO
     TEST_ASSERT_EQUAL_INT(CT_LOC_INTERNAL, d.loc);
     TEST_ASSERT_FALSE(ctStorageChoiceValid(3));
 }
@@ -827,16 +831,15 @@ void test_sd_cs_pin_validation(void) {
     const int used[] = { 10, 14, 15 };
     TEST_ASSERT_TRUE(ctSdCsPinAllowed(5, used, 3));
     TEST_ASSERT_FALSE(ctSdCsPinAllowed(-1, used, 3));
-    TEST_ASSERT_FALSE(ctSdCsPinAllowed(0, used, 3));    // strapping
-    TEST_ASSERT_FALSE(ctSdCsPinAllowed(19, used, 3));   // USB
-    TEST_ASSERT_FALSE(ctSdCsPinAllowed(22, used, 3));   // nonexistent on ESP32-S3
-    TEST_ASSERT_FALSE(ctSdCsPinAllowed(43, used, 3));   // UART0 / serial console
-    TEST_ASSERT_FALSE(ctSdCsPinAllowed(44, used, 3));   // UART0 / serial console
-    TEST_ASSERT_FALSE(ctSdCsPinAllowed(30, used, 3));   // flash/PSRAM
-    TEST_ASSERT_FALSE(ctSdCsPinAllowed(14, used, 3));   // already used
+    TEST_ASSERT_FALSE(ctSdCsPinAllowed(0, used, 3));   // strapping
+    TEST_ASSERT_FALSE(ctSdCsPinAllowed(19, used, 3));  // USB
+    TEST_ASSERT_FALSE(ctSdCsPinAllowed(22, used, 3));  // nonexistent on ESP32-S3
+    TEST_ASSERT_FALSE(ctSdCsPinAllowed(43, used, 3));  // UART0 / serial console
+    TEST_ASSERT_FALSE(ctSdCsPinAllowed(44, used, 3));  // UART0 / serial console
+    TEST_ASSERT_FALSE(ctSdCsPinAllowed(30, used, 3));  // flash/PSRAM
+    TEST_ASSERT_FALSE(ctSdCsPinAllowed(14, used, 3));  // already used
     TEST_ASSERT_FALSE(ctSdCsPinAllowed(49, used, 3));
 }
-
 
 void test_buttons_adc_classification_and_invalid_range(void) {
     const uint16_t L[5] = {300, 700, 1100, 1500, 1900};
@@ -850,13 +853,13 @@ void test_buttons_adc_classification_and_invalid_range(void) {
     TEST_ASSERT_FALSE(ctLadderValid(overlap, 100));
     const int used[] = {10};
     TEST_ASSERT_TRUE(ctAdcPinAllowed(4, used, 1));
-    TEST_ASSERT_FALSE(ctAdcPinAllowed(12, used, 1));   // ADC2 conflicts with Wi-Fi
+    TEST_ASSERT_FALSE(ctAdcPinAllowed(12, used, 1));  // ADC2 conflicts with Wi-Fi
 }
 
 void test_buttons_debounce_short_and_long_press(void) {
     CtKeyState s; uint32_t t = 0; CtKeyEvent e;
     e = ctKeyStep(s, CT_KEY_UP, t);                      TEST_ASSERT_EQUAL_INT(CT_EV_NONE, e.type);
-    t += 10; e = ctKeyStep(s, CT_KEY_NONE, t);           // bounce
+    t += 10; e = ctKeyStep(s, CT_KEY_NONE, t);                                                       // bounce
     t += 10; e = ctKeyStep(s, CT_KEY_UP, t);             TEST_ASSERT_EQUAL_INT(CT_EV_NONE, e.type);
     t += 40; e = ctKeyStep(s, CT_KEY_UP, t);             TEST_ASSERT_EQUAL_INT(CT_EV_PRESS, e.type);
     t += 50; e = ctKeyStep(s, CT_KEY_NONE, t);
@@ -880,30 +883,30 @@ static void makeOtaHeader(uint8_t* h, uint8_t segments, uint8_t flashCode, uint1
     memset(h, 0, CT_OTA_HEADER_LEN);
     h[0] = 0xE9;
     h[1] = segments;
-    h[3] = (uint8_t)((flashCode << 4) | 0x0F);    // size code in the high nibble
+    h[3] = (uint8_t)((flashCode << 4) | 0x0F);  // size code in the high nibble
     h[12] = (uint8_t)(chip & 0xFF);
     h[13] = (uint8_t)(chip >> 8);
 }
 
 void test_ota_header_accepts_matching_image() {
     uint8_t h[CT_OTA_HEADER_LEN];
-    makeOtaHeader(h, 5, 2, CT_OTA_CHIP_ESP32S3);    // built for 4 MB
+    makeOtaHeader(h, 5, 2, CT_OTA_CHIP_ESP32S3);  // built for 4 MB
     CtOtaHeaderCheck st;
     TEST_ASSERT_EQUAL(CT_OTA_HDR_OK, ctOtaHeaderFeed(st, h, sizeof(h), 4u * 1048576u));
     TEST_ASSERT_TRUE(st.done);
-    CtOtaHeaderCheck st2;    // 4 MB image on a 16 MB board is allowed
+    CtOtaHeaderCheck st2;                         // 4 MB image on a 16 MB board is allowed
     TEST_ASSERT_EQUAL(CT_OTA_HDR_OK, ctOtaHeaderFeed(st2, h, sizeof(h), 16u * 1048576u));
 }
 
 void test_ota_header_rejects_flash_chip_and_magic() {
     uint8_t h[CT_OTA_HEADER_LEN];
     CtOtaHeaderCheck st;
-    makeOtaHeader(h, 5, 4, CT_OTA_CHIP_ESP32S3);    // built for 16 MB, device has 4 MB
+    makeOtaHeader(h, 5, 4, CT_OTA_CHIP_ESP32S3);  // built for 16 MB, device has 4 MB
     TEST_ASSERT_EQUAL(CT_OTA_HDR_FLASH_TOO_BIG, ctOtaHeaderFeed(st, h, sizeof(h), 4u * 1048576u));
     TEST_ASSERT_FALSE(st.done);
 
     CtOtaHeaderCheck st2;
-    makeOtaHeader(h, 5, 2, 0x0000);    // original ESP32
+    makeOtaHeader(h, 5, 2, 0x0000);  // original ESP32
     TEST_ASSERT_EQUAL(CT_OTA_HDR_WRONG_CHIP, ctOtaHeaderFeed(st2, h, sizeof(h), 4u * 1048576u));
 
     CtOtaHeaderCheck st3;
@@ -913,11 +916,11 @@ void test_ota_header_rejects_flash_chip_and_magic() {
     CtOtaHeaderCheck st4;
     TEST_ASSERT_EQUAL(CT_OTA_HDR_BAD_SEGMENTS, ctOtaHeaderFeed(st4, h, sizeof(h), 4u * 1048576u));
 
-    CtOtaHeaderCheck st5;    // unknown size code
+    CtOtaHeaderCheck st5;  // unknown size code
     makeOtaHeader(h, 5, 9, CT_OTA_CHIP_ESP32S3);
     TEST_ASSERT_EQUAL(CT_OTA_HDR_FLASH_TOO_BIG, ctOtaHeaderFeed(st5, h, sizeof(h), 16u * 1048576u));
 
-    CtOtaHeaderCheck st6;    // wrong first byte is refused at once, before 24 bytes arrive
+    CtOtaHeaderCheck st6;  // wrong first byte is refused at once, before 24 bytes arrive
     const uint8_t junk[2] = {0x00, 0x01};
     TEST_ASSERT_EQUAL(CT_OTA_HDR_BAD_MAGIC, ctOtaHeaderFeed(st6, junk, sizeof(junk), 4u * 1048576u));
 }
@@ -926,10 +929,10 @@ void test_ota_header_collects_across_small_chunks() {
     uint8_t h[CT_OTA_HEADER_LEN];
     makeOtaHeader(h, 5, 2, CT_OTA_CHIP_ESP32S3);
     CtOtaHeaderCheck st;
-    for (size_t i = 0; i + 1 < sizeof(h); i++) {    // one byte at a time
+    for (size_t i = 0; i + 1 < sizeof(h); i++) {  // one byte at a time
         TEST_ASSERT_EQUAL(CT_OTA_HDR_NEED_MORE, ctOtaHeaderFeed(st, h + i, 1, 4u * 1048576u));
     }
-    TEST_ASSERT_FALSE(st.done);    // image that ends here is too short
+    TEST_ASSERT_FALSE(st.done);  // image that ends here is too short
     TEST_ASSERT_EQUAL(CT_OTA_HDR_OK, ctOtaHeaderFeed(st, h + sizeof(h) - 1, 1, 4u * 1048576u));
     TEST_ASSERT_TRUE(st.done);
     st.reset();
@@ -950,7 +953,7 @@ void test_obd_value_goes_stale_after_limit(void) {
 }
 
 void test_obd_value_freshness_survives_millis_wraparound(void) {
-    const uint32_t last = 0xFFFFFF00u;    // 256 ms before the counter wraps
+    const uint32_t last = 0xFFFFFF00u;  // 256 ms before the counter wraps
     TEST_ASSERT_TRUE(ctObdValueFresh(true, last, 0x00000100u, CT_OBD_STALE_MS));
     TEST_ASSERT_FALSE(ctObdValueFresh(true, last, 0x00002000u, CT_OBD_STALE_MS));
 }
@@ -993,7 +996,7 @@ void test_learn_listen_only_override_is_never_persisted(void) {
 
 // PID 0x0C decoding uses the same production conversion helper as the reader.
 static bool simReadRpm(SimEcuMode mode, float& rpm) {
-    const uint8_t value[2] = { 0x1A, 0xF8 };    // 6904 / 4 = 1726 rpm
+    const uint8_t value[2] = { 0x1A, 0xF8 };  // 6904 / 4 = 1726 rpm
     SimFrame f;
     if (simEcuMode01(mode, 0x0C, value, 2, &f) == 0) return false;
     if (!ctIsObdReplyFrame(f.id, false, false)) return false;
@@ -1016,11 +1019,11 @@ void test_sim_ecu_bad_replies_never_produce_a_value(void) {
     TEST_ASSERT_FALSE(simReadRpm(SIM_ECU_WRONG_PID, rpm));
     TEST_ASSERT_FALSE(simReadRpm(SIM_ECU_TRUNCATED, rpm));
     TEST_ASSERT_FALSE(simReadRpm(SIM_ECU_NEGATIVE, rpm));
-    TEST_ASSERT_EQUAL_FLOAT(-1.0f, rpm);    // output untouched: no invented number
+    TEST_ASSERT_EQUAL_FLOAT(-1.0f, rpm);  // output untouched: no invented number
 }
 
 void test_sim_ecu_multiframe_dtc_reassembly(void) {
-    const uint8_t dtcs[6] = { 0x01, 0x33, 0x01, 0x34, 0x02, 0x00 };    // 3rd is real
+    const uint8_t dtcs[6] = { 0x01, 0x33, 0x01, 0x34, 0x02, 0x00 };  // 3rd is real
     SimFrame fr[4];
     const uint8_t n = simEcuMode03(dtcs, sizeof(dtcs), -1, fr, 4);
     TEST_ASSERT_EQUAL(2, n);
@@ -1042,10 +1045,10 @@ void test_sim_ecu_multiframe_dtc_reassembly(void) {
 }
 
 void test_sim_ecu_lost_consecutive_frame_is_not_accepted(void) {
-    const uint8_t dtcs[18] = { 1,1, 1,2, 1,3, 1,4, 1,5, 1,6, 1,7, 1,8, 1,9 };    // total 19: FF + 2 CF
+    const uint8_t dtcs[18] = { 1,1, 1,2, 1,3, 1,4, 1,5, 1,6, 1,7, 1,8, 1,9 };  // total 19: FF + 2 CF
     SimFrame fr[6];
-    const uint8_t n = simEcuMode03(dtcs, sizeof(dtcs), 0, fr, 6);    // first CF lost
-    TEST_ASSERT_EQUAL(2, n);    // FF + the surviving CF (sequence 2)
+    const uint8_t n = simEcuMode03(dtcs, sizeof(dtcs), 0, fr, 6);              // first CF lost
+    TEST_ASSERT_EQUAL(2, n);                                                   // FF + the surviving CF (sequence 2)
 
     uint8_t payload[64];
     CtIsoTpReassembly st;
@@ -1067,10 +1070,10 @@ void test_sim_ecu_poll_validity_with_partial_ecu(void) {
     static const uint8_t bits[7] = { CT_VD_RPM, CT_VD_SPEED, CT_VD_COOLANT,
                                      CT_VD_THROTTLE, CT_VD_FUEL, CT_VD_RUNTIME,
                                      CT_VD_BATTERY };
-    static const uint8_t pids[7] = { 0x0C, 0x0D, 0x05, 0x11, 0x2F, 0x1F, 0x42 };
-    bool answered[7] = {};
-    uint32_t lastMs[7] = {};
-    const uint8_t value[2] = { 0x10, 0x00 };
+    static const uint8_t pids[7]     = { 0x0C, 0x0D, 0x05, 0x11, 0x2F, 0x1F, 0x42 };
+    bool                 answered[7] = {};
+    uint32_t             lastMs[7]   = {};
+    const uint8_t        value[2]    = { 0x10, 0x00 };
 
     uint32_t now = 1000;
     for (int round = 0; round < 3; ++round, now += 1500) {
@@ -1109,7 +1112,7 @@ void test_login_lock_is_shared_and_expires(void) {
     ctLoginFailed(l, 1005);
     TEST_ASSERT_TRUE(ctLoginLocked(l, 1006));
     TEST_ASSERT_TRUE(ctLoginLocked(l, 1005 + CT_LOGIN_LOCK_MS - 1));
-    TEST_ASSERT_FALSE(ctLoginLocked(l, 1005 + CT_LOGIN_LOCK_MS));    // expired and cleared
+    TEST_ASSERT_FALSE(ctLoginLocked(l, 1005 + CT_LOGIN_LOCK_MS));  // expired and cleared
     TEST_ASSERT_EQUAL(0, l.fails);
     // A correct password resets the counter.
     ctLoginFailed(l, 5000); ctLoginFailed(l, 5001);
@@ -1119,7 +1122,7 @@ void test_login_lock_is_shared_and_expires(void) {
 
 void test_login_lock_survives_millis_wraparound(void) {
     CtLoginLock l;
-    const uint32_t t0 = 0xFFFFFF00u;    // lock end wraps past zero
+    const uint32_t t0 = 0xFFFFFF00u;  // lock end wraps past zero
     for (int i = 0; i < 5; ++i) ctLoginFailed(l, t0);
     TEST_ASSERT_TRUE(ctLoginLocked(l, t0 + 1000));
     TEST_ASSERT_FALSE(ctLoginLocked(l, t0 + CT_LOGIN_LOCK_MS + 1));
@@ -1138,8 +1141,8 @@ void test_dbc_name_rules(void) {
     TEST_ASSERT_FALSE(ctDbcNameValid("car.txt"));
     TEST_ASSERT_FALSE(ctDbcNameValid("my car.dbc"));
     TEST_ASSERT_FALSE(ctDbcNameValid("a\"b.dbc"));
-    TEST_ASSERT_TRUE(ctDbcNameValid("abcdefghijklmnopqrstuv.dbc"));   // 26 chars
-    TEST_ASSERT_FALSE(ctDbcNameValid("abcdefghijklmnopqrstuvw.dbc")); // 27 chars
+    TEST_ASSERT_TRUE(ctDbcNameValid("abcdefghijklmnopqrstuv.dbc"));    // 26 chars
+    TEST_ASSERT_FALSE(ctDbcNameValid("abcdefghijklmnopqrstuvw.dbc"));  // 27 chars
 }
 
 void test_dbc_path_fits_profile_field(void) {
@@ -1171,7 +1174,7 @@ void test_dbc_scan_counts_messages_and_cap(void) {
     ctDbcScanLine(s, "BO_ 100 MSG_A: 8 ECU");
     ctDbcScanLine(s, " SG_ Speed : 0|16@1+ (1,0) [0|0] \"\" X");
     ctDbcScanLine(s, "\tBO_ 200 MSG_B: 8 ECU\r");
-    ctDbcScanLine(s, "BO_TX_BU_ 100 : ECU;");   // not a message record
+    ctDbcScanLine(s, "BO_TX_BU_ 100 : ECU;");  // not a message record
     TEST_ASSERT_EQUAL_UINT32(2, s.messages);
     TEST_ASSERT_EQUAL(CT_DBC_OK, ctDbcScanVerdict(s));
 
@@ -1192,7 +1195,7 @@ void test_dbc_scan_rejects_binary(void) {
     ctDbcScanLine(s, "\x7f""ELF\x01\x02");
     TEST_ASSERT_EQUAL(CT_DBC_BAD_CONTENT, ctDbcScanVerdict(s));
     CtDbcScan t; ctDbcScanInit(t);
-    ctDbcScanLine(t, "BO_ 1 M: 8 E\t\r");   // TAB and CR are allowed
+    ctDbcScanLine(t, "BO_ 1 M: 8 E\t\r");  // TAB and CR are allowed
     TEST_ASSERT_EQUAL(CT_DBC_OK, ctDbcScanVerdict(t));
 }
 
@@ -1302,11 +1305,11 @@ void test_dbc_manifest_rejects_bad_lines(void) {
     TEST_ASSERT_FALSE(ctDbcManifestParseLine(l, e));
     snprintf(l, sizeof(l), "{\"name\":\"x.dbc\",\"size\":99999999999,%s,\"messages\":1}", h);
     TEST_ASSERT_FALSE(ctDbcManifestParseLine(l, e));
-    snprintf(l, sizeof(l), "{\"name\":\"x.dbc\",\"size\":5,%s}", h);          // no messages
+    snprintf(l, sizeof(l), "{\"name\":\"x.dbc\",\"size\":5,%s}", h);                // no messages
     TEST_ASSERT_FALSE(ctDbcManifestParseLine(l, e));
-    snprintf(l, sizeof(l), "{\"name\":\"x.dbc\",\"size\":5,%s,\"messages\":1", h);   // truncated, no closing brace
+    snprintf(l, sizeof(l), "{\"name\":\"x.dbc\",\"size\":5,%s,\"messages\":1", h);  // truncated, no closing brace
     TEST_ASSERT_FALSE(ctDbcManifestParseLine(l, e));
-    snprintf(l, sizeof(l), "{\"name\":\"x.dbc");                                // unterminated string
+    snprintf(l, sizeof(l), "{\"name\":\"x.dbc");                                    // unterminated string
     TEST_ASSERT_FALSE(ctDbcManifestParseLine(l, e));
     TEST_ASSERT_FALSE(ctDbcManifestParseLine(nullptr, e));
 }
@@ -1339,8 +1342,6 @@ void test_sync_policy_buttons_gpio_conflicts_with_sd_cs(void) {
     TEST_ASSERT_FALSE(ctSync().validateButtonsVsGivenSdCs(btnPins, 4));
     TEST_ASSERT_FALSE(ctSync().validateButtonsVsGivenSdCs(btnPins, 5));
 }
-
-
 
 void test_host_guard_allows_only_device_ips(void) {
     // AP only
@@ -1392,7 +1393,6 @@ void test_command_gate_applies_to_every_source(void) {
     TEST_ASSERT_EQUAL(CT_CMD_REJECT_INVALID, ctCommandGate(true, false, nullptr));
 }
 
-
 void test_command_actuator_metadata_is_explicit(void) {
     TEST_ASSERT_EQUAL(COMMAND_ACTUATOR_WINDOW, ctSuggestedActuatorClassForStandardLabel("window_fl_up"));
     TEST_ASSERT_EQUAL(COMMAND_ACTUATOR_SUNROOF, ctSuggestedActuatorClassForStandardLabel("sunroof_open"));
@@ -1400,6 +1400,10 @@ void test_command_actuator_metadata_is_explicit(void) {
     TEST_ASSERT_EQUAL(COMMAND_ACTUATOR_NONE, ctSuggestedActuatorClassForStandardLabel("lock_all"));
     TEST_ASSERT_EQUAL(COMMAND_ACTUATOR_UNKNOWN, ctSuggestedActuatorClassForStandardLabel("my_custom_button"));
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Test runner
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 int main(int, char**) {
     UNITY_BEGIN();

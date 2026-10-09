@@ -9,12 +9,16 @@
 #include <stdint.h>
 #include <string.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Simulator types
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 enum SimEcuMode {
-    SIM_ECU_NORMAL = 0,    // correct reply
-    SIM_ECU_SILENT,        // no reply at all (unsupported PID, ignition off)
-    SIM_ECU_WRONG_PID,     // reply for a different PID than requested
-    SIM_ECU_TRUNCATED,     // PCI length says more bytes than the DLC holds
-    SIM_ECU_NEGATIVE       // 7F negative response
+    SIM_ECU_NORMAL = 0,  // correct reply
+    SIM_ECU_SILENT,      // no reply at all (unsupported PID, ignition off)
+    SIM_ECU_WRONG_PID,   // reply for a different PID than requested
+    SIM_ECU_TRUNCATED,   // PCI length says more bytes than the DLC holds
+    SIM_ECU_NEGATIVE     // 7F negative response
 };
 
 struct SimFrame {
@@ -22,6 +26,10 @@ struct SimFrame {
     uint8_t  data[8];
     uint8_t  length;
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Mode 01 reply
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // Mode 01 request [02 01 PID] -> single frame reply on 0x7E8.
 // Returns number of reply frames written (0 or 1).
@@ -41,11 +49,15 @@ static inline uint8_t simEcuMode01(SimEcuMode mode, uint8_t pid,
     out->data[2] = (mode == SIM_ECU_WRONG_PID) ? (uint8_t)(pid ^ 0x01) : pid;
     memcpy(out->data + 3, value, valueLen);
     if (mode == SIM_ECU_TRUNCATED) {
-        out->data[0] = 7;      // claims 7 payload bytes
-        out->length = 4;       // but only 4 bytes were received
+        out->data[0] = 7;  // claims 7 payload bytes
+        out->length = 4;   // but only 4 bytes were received
     }
     return 1;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Mode 03 reply
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // Mode 03 reply for a list of DTCs (2 bytes each) as ISO-TP.
 // dtcBytes = 2*n. Writes First Frame + Consecutive Frames. When
@@ -55,7 +67,7 @@ static inline uint8_t simEcuMode03(const uint8_t* dtcBytes, uint8_t dtcByteCount
                                    int dropFrame, SimFrame* out, uint8_t maxOut) {
     uint8_t payload[64];
     const uint8_t total = (uint8_t)(1 + dtcByteCount);
-    if (total > sizeof(payload) || total <= 6) return 0;    // multi-frame only
+    if (total > sizeof(payload) || total <= 6) return 0;  // multi-frame only
     payload[0] = 0x43;
     memcpy(payload + 1, dtcBytes, dtcByteCount);
 
