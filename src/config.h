@@ -10,6 +10,7 @@
 #define CONFIG_H
 
 #include <Arduino.h>
+#include "ct_credentials.h"
 
 // Firmware version reported by the authenticated Web status API and UI.
 // Keep this as the single source of truth when a firmware release changes.
@@ -88,39 +89,18 @@
 #define WIFI_AP_NAME        "CarTouch"
 #define WIFI_AP_CHANNEL     1  // 2.4 GHz channel of the access point
 #define WIFI_AP_MAX_CLIENTS 4  // Simultaneous Wi-Fi clients on the access point
-// The Wi-Fi access point uses the same password as the web UI and BLE
-// (AppConfig::webPass). There is no separate Wi-Fi password in the source.
+// The Wi-Fi access point key follows the web password in personal mode and is
+// a separate stored value in commercial mode (see ct_credentials.h).
 #define WIFI_MAX_RETRY  20
 #define WIFI_TIMEOUT_MS 15000
 
 #define WEB_PORT 80
 
-// ---- THE ONLY PLACE the default login is written -------------------------
-// Used everywhere: web UI, TFT, BLE (AUTH / OTA) and the Wi-Fi AP. It is fixed
-// (never generated automatically) and identical on every device. It is visible
-// in the repository, so it must be changed before the product is sold:
-//   1. edit WEB_DEFAULT_PASS below (8 to 15 characters), and
-//   2. set CT_REQUIRE_PASSWORD_CHANGE to 1 if every owner must pick their own.
-// An owner can also change the password at any time from Settings (TFT / Web).
-#define WEB_DEFAULT_USER "CarTouch"
-#define WEB_DEFAULT_PASS "12345678"
-
-// 0 = the default login works everywhere, including BLE commands and BLE OTA
-//     (development setting).
-// 1 = while the password is still the default, BLE commands and BLE OTA are
-//     refused, the TFT/Web show a "change the password" warning, and the
-//     default cannot be chosen again as the new password.
-#ifndef CT_REQUIRE_PASSWORD_CHANGE
-#define CT_REQUIRE_PASSWORD_CHANGE 0
-#endif
-
-// Compile-time guard: webUser is char[16], webPass is char[16], and the Wi-Fi
-// access point needs at least 8 characters.
-static_assert(sizeof(WEB_DEFAULT_PASS) >= 9 && sizeof(WEB_DEFAULT_PASS) <= 16,
-              "WEB_DEFAULT_PASS must be 8 to 15 characters");
-static_assert(sizeof(WEB_DEFAULT_USER) >= 2 && sizeof(WEB_DEFAULT_USER) <= 16,
-              "WEB_DEFAULT_USER must be 1 to 15 characters");
-
+// ---- Login defaults -------------------------------------------------------
+// All login settings (WEB_DEFAULT_USER / WEB_DEFAULT_PASS, CT_PRODUCT_MODE,
+// CT_REQUIRE_PASSWORD_CHANGE, Wi-Fi AP key) live in ct_credentials.h and can
+// be overridden with -D flags in platformio.ini. Personal mode (default)
+// keeps one fixed login on every device: CarTouch / 12345678.
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 // □□□□□□□□□□ Power management
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -321,6 +301,19 @@ void configSetLearnListenOverride(uint8_t busIndex, bool forced, bool userChoice
 
 /** True if the device is still using the default/temporary web password. */
 bool isUsingDefaultPassword();
+
+/**
+ * Key for the Wi-Fi access point (8 to 15 characters, never empty).
+ * Personal mode: the web password. Commercial mode (CT_AP_KEY_SEPARATE):
+ * its own stored value.
+ */
+const char* getWifiApKey();
+
+/**
+ * Sets the separate AP key (only when CT_AP_KEY_SEPARATE=1; otherwise returns
+ * false). Takes effect the next time the access point starts.
+ */
+bool setWifiApKey(const char* newKey);
 
 /**
  * Sets a new web password (min 8 characters, must differ from the

@@ -52,11 +52,12 @@ void WiFiManager::begin(uint8_t mode) {
 // □□□□□□□□□□ Access Point mode
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
-// The access point uses the device password. WPA2 needs 8 to 63 characters; an
-// empty password would start an OPEN network, so fall back to the default.
+// The access point key comes from getWifiApKey(): the device password in
+// personal mode (unchanged behaviour), a separate stored key in commercial
+// mode. WPA2 needs 8 to 63 characters; an empty key would start an OPEN
+// network, so getWifiApKey() falls back to the factory key.
 static const char* apPassword() {
-    const char* p = getConfig()->webPass;
-    return strlen(p) >= 8 ? p : WEB_DEFAULT_PASS;
+    return getWifiApKey();
 }
 
 void WiFiManager::_startAP() {

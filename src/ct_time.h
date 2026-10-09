@@ -14,9 +14,4 @@ static inline bool ctElapsedAtLeast(uint32_t nowMs, uint32_t startMs, uint32_t d
     return (uint32_t)(nowMs - startMs) >= durationMs;
 }
 
-/** true when MORE than `durationMs` have elapsed since `startMs`. */
-static inline bool ctElapsedMoreThan(uint32_t nowMs, uint32_t startMs, uint32_t durationMs) {
-    return (uint32_t)(nowMs - startMs) > durationMs;
-}
-
 #endif    // CT_TIME_H

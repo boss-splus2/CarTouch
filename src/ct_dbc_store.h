@@ -34,20 +34,6 @@ enum CtDbcResult : uint8_t {
     CT_DBC_TOO_MANY_MESSAGES
 };
 
-static inline const char* ctDbcResultText(CtDbcResult r) {
-    switch (r) {
-        case CT_DBC_OK:                return "OK";
-        case CT_DBC_BAD_NAME:          return "Invalid file name (use letters, digits, _ - . and end with .dbc, max 26 characters)";
-        case CT_DBC_EMPTY:             return "File is empty";
-        case CT_DBC_TOO_BIG:           return "File is larger than the 400 KB limit";
-        case CT_DBC_NO_SPACE:          return "Not enough free storage space";
-        case CT_DBC_BAD_CONTENT:       return "File is not a text DBC file";
-        case CT_DBC_NO_MESSAGES:       return "No messages (BO_ lines) found in the file";
-        case CT_DBC_TOO_MANY_MESSAGES: return "File has more messages than the device can hold (400)";
-    }
-    return "Unknown error";
-}
-
 static inline bool ctDbcNameChar(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
            c == '_' || c == '-' || c == '.';
@@ -80,14 +66,10 @@ static inline bool ctDbcBuildPath(const char* name, char* out, size_t outSize) {
     return true;
 }
 
-// Size check before any byte is written. replacingBytes = size of an existing file with the
-// same name that this upload replaces (its space becomes free again).
-static inline CtDbcResult ctDbcSizeCheck(uint32_t sizeBytes, uint64_t freeBytes, uint32_t replacingBytes) {
-    if (sizeBytes == 0) return CT_DBC_EMPTY;
-    if (sizeBytes > CT_DBC_MAX_BYTES) return CT_DBC_TOO_BIG;
-    const uint64_t avail = freeBytes + replacingBytes;
-    if (avail < (uint64_t)sizeBytes + CT_DBC_RESERVE_BYTES) return CT_DBC_NO_SPACE;
-    return CT_DBC_OK;
+// An upload (or the space reserved for it) must be 1..CT_DBC_MAX_BYTES bytes. Used when the
+// upload starts and again when it finishes. Free space is decided by ctResolveStorage().
+static inline bool ctDbcSizeInRange(uint32_t sizeBytes) {
+    return sizeBytes != 0 && sizeBytes <= CT_DBC_MAX_BYTES;
 }
 
 // Streaming content scan: feed it every line (without '\n'). Counts "BO_ " records (after

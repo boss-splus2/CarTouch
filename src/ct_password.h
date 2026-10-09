@@ -22,8 +22,3 @@ static inline void ctGeneratePassword(char* out, size_t outSize,
     }
     out[len] = '\0';
 }
-
-// Basic OTA image header check: ESP image magic byte is 0xE9.
-static inline bool ctOtaFirmwareHeaderOk(const uint8_t* data, size_t len) {
-    return data && len >= 1 && data[0] == 0xE9;
-}

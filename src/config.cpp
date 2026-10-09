@@ -7,6 +7,7 @@
 
 #include "config.h"
 #include "ct_password.h"
+#include "ct_credentials.h"
 #include "sd_storage.h"
 #include "buttons.h"
 #include <esp_random.h>
@@ -98,14 +99,67 @@ void registerPasswordChangeCallback(PasswordChangeCallback cb) {
 // □□□□□□□□□□ Load / save
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
+// ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
+// ○○○○○○○○○○ Initial login (single provisioning point)
+// ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
+
+// Wi-Fi AP key when it is separate from the web password (commercial mode).
+// In personal mode it stays empty and the AP key follows the web password.
+static char s_apKey[16] = "";
+
+#if CT_AP_KEY_SEPARATE
+static bool persistApKey() {
+    nvs_handle_t h;
+    if (nvs_open("CarTouch", NVS_READWRITE, &h) != ESP_OK) return false;
+    esp_err_t err = nvs_set_str(h, "ap_key", s_apKey);
+    if (err == ESP_OK) err = nvs_commit(h);
+    nvs_close(h);
+    return err == ESP_OK;
+}
+
+static void loadApKey() {
+    s_apKey[0] = '\0';
+    nvs_handle_t h;
+    if (nvs_open("CarTouch", NVS_READONLY, &h) != ESP_OK) return;
+    size_t len = sizeof(s_apKey);
+    if (nvs_get_str(h, "ap_key", s_apKey, &len) != ESP_OK) s_apKey[0] = '\0';
+    nvs_close(h);
+    s_apKey[sizeof(s_apKey) - 1] = '\0';
+}
+#endif
+
+#if CT_PRODUCT_MODE
+static uint32_t ctRandom32() { return esp_random(); }
+#define CT_RND_FN ctRandom32
+#else
+#define CT_RND_FN nullptr
+#endif
+
+// The ONLY place a login is created for a device without stored settings
+// (first boot, factory reset, damaged data). Personal mode: the fixed default
+// login, nothing random. Commercial mode: unique login, owner must change it.
+static void provisionLogin() {
+    CtCredentials c;
+    ctProvisionInitialCredentials(&c, CT_PRODUCT_MODE, CT_RND_FN);
+    ctCopyStr(currentConfig.webUser, sizeof(currentConfig.webUser), c.user);
+    ctCopyStr(currentConfig.webPass, sizeof(currentConfig.webPass), c.webPass);
+    currentConfig.forcePasswordChange = c.mustChange;
+#if CT_AP_KEY_SEPARATE
+    ctCopyStr(s_apKey, sizeof(s_apKey), c.apKey);
+    if (!persistApKey()) Serial.println("[NVS] Failed to persist Wi-Fi AP key");
+#endif
+#if CT_PRODUCT_MODE
+    // Factory line only: the label printer / flashing tool reads this once.
+    Serial.printf("[FACTORY] user=%s web=%s ap=%s\n", c.user, c.webPass, c.apKey);
+#endif
+}
+
 static void applyDefaultConfigValues() {
     memset(&currentConfig, 0, sizeof(currentConfig));
     strcpy(currentConfig.wifiSSID, "");
     strcpy(currentConfig.wifiPassword, "");
     currentConfig.wifiEnabled = true;
-    strcpy(currentConfig.webUser, WEB_DEFAULT_USER);
-    strcpy(currentConfig.webPass, WEB_DEFAULT_PASS);
-    currentConfig.forcePasswordChange = false;
+    provisionLogin();
     strcpy(currentConfig.vehicleBrand, "Generic");
     strcpy(currentConfig.vehicleModel, "OBD-II");
     currentConfig.vehicleYear = 2020;
@@ -222,15 +276,28 @@ bool loadConfig() {
     // with the default login (other settings are kept). The same is done for
     // a missing user name or password (damaged data): without this the Wi-Fi
     // access point could start with no password at all.
-    if (currentConfig.forcePasswordChange || currentConfig.webUser[0] == '\0' ||
+    // In commercial mode the flag is meaningful ("factory password not yet
+    // changed"), so only personal mode treats it as the old legacy marker.
+    const bool legacyForce = (CT_PRODUCT_MODE == 0) && currentConfig.forcePasswordChange;
+    if (legacyForce || currentConfig.webUser[0] == '\0' ||
         strlen(currentConfig.webPass) < 8) {
-        strcpy(currentConfig.webUser, WEB_DEFAULT_USER);
-        strcpy(currentConfig.webPass, WEB_DEFAULT_PASS);
-        currentConfig.forcePasswordChange = false;
+        provisionLogin();
         if (!saveConfig()) {
             Serial.println("[NVS] Failed to persist default login");
         }
     }
+#if CT_AP_KEY_SEPARATE
+    // Separate AP key: read it; a missing or damaged one (for example after
+    // moving from personal firmware) is replaced by a freshly provisioned key.
+    loadApKey();
+    if (strlen(s_apKey) < 8) {
+        CtCredentials c;
+        if (ctProvisionInitialCredentials(&c, CT_PRODUCT_MODE, CT_RND_FN)) {
+            ctCopyStr(s_apKey, sizeof(s_apKey), c.apKey);
+            persistApKey();
+        }
+    }
+#endif
     configLoaded = true;
     Serial.println(validStoredConfig ? "[NVS] Configuration loaded" : "[NVS] Default configuration loaded");
     return true;
@@ -310,13 +377,35 @@ AppConfig* getConfig() {
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool isUsingDefaultPassword() {
-#if CT_REQUIRE_PASSWORD_CHANGE
-    // Real comparison with the compiled-in default (the old version only read
-    // a flag that was never set, so the "refuse the default" checks in BLE did
-    // nothing).
-    return strcmp(getConfig()->webPass, WEB_DEFAULT_PASS) == 0;
+    // CT_REQUIRE_PASSWORD_CHANGE = 0 (personal mode): always false, the default
+    // login is allowed everywhere. Otherwise: true while the factory flag is
+    // set or the password still equals the compiled-in default.
+    return ctPasswordChangePending(CT_REQUIRE_PASSWORD_CHANGE != 0,
+                                   getConfig()->forcePasswordChange,
+                                   getConfig()->webPass);
+}
+
+const char* getWifiApKey() {
+    return ctEffectiveApKey(CT_AP_KEY_SEPARATE != 0, getConfig()->webPass, s_apKey);
+}
+
+bool setWifiApKey(const char* newKey) {
+#if CT_AP_KEY_SEPARATE
+    if (!newKey || strlen(newKey) < 8 || strlen(newKey) >= sizeof(s_apKey)) {
+        Serial.println("[CONFIG] Wi-Fi AP key must be 8 to 15 characters");
+        return false;
+    }
+    char old[sizeof(s_apKey)];
+    memcpy(old, s_apKey, sizeof(old));
+    ctCopyStr(s_apKey, sizeof(s_apKey), newKey);
+    if (!persistApKey()) {
+        memcpy(s_apKey, old, sizeof(old));
+        return false;
+    }
+    return true;  // takes effect the next time the access point starts
 #else
-    // Development setting: the default login is allowed everywhere.
+    (void)newKey;
+    Serial.println("[CONFIG] Wi-Fi AP key follows the web password in this build");
     return false;
 #endif
 }

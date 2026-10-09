@@ -377,8 +377,7 @@ bool DbcStore::_beginUpload(const char* name, uint32_t maxUploadBytes,
     }
     strncpy(_uploadName, name, sizeof(_uploadName) - 1);
     _uploadName[sizeof(_uploadName) - 1] = '\0';
-    if (maxUploadBytes == 0 || maxUploadBytes > CT_DBC_MAX_BYTES ||
-        requiredFreeBytes == 0 || requiredFreeBytes > CT_DBC_MAX_BYTES) {
+    if (!ctDbcSizeInRange(maxUploadBytes) || !ctDbcSizeInRange(requiredFreeBytes)) {
         _setStatus(DBC_STORE_INVALID_SIZE);
         return false;
     }
@@ -809,7 +808,7 @@ bool DbcStore::finishUpload() {
         return false;
     }
     if ((_sizeKnown && _receivedBytes != _expectedBytes) ||
-        _receivedBytes == 0 || _receivedBytes > CT_DBC_MAX_BYTES) {
+        !ctDbcSizeInRange(_receivedBytes)) {
         abortUpload();
         _setStatus(DBC_STORE_INVALID_SIZE);
         return false;
