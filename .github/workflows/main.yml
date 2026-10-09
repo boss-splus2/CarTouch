@@ -277,6 +277,11 @@ jobs:
           set -o pipefail
           python3 scripts/check_tx_paths.py src 2>&1 | tee report/check_tx_paths.txt
 
+      - name: Verify no ct* function exists only for the tests
+        run: |
+          set -o pipefail
+          python3 scripts/check_dead_ct_symbols.py . 2>&1 | tee report/check_dead_ct_symbols.txt
+
       - name: Check DBC limits match the loader
         run: |
           set -o pipefail
