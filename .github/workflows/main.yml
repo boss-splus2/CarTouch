@@ -382,3 +382,50 @@ jobs:
           path: report
           if-no-files-found: ignore
           retention-days: 14
+
+  # Always runs last (success, failure or cancellation) and publishes the
+  # logs of all other jobs as the third download: "logs". Together with
+  # "cartouch-firmware" (only when every build is green) and "ci-report"
+  # the run therefore always ends with the same downloads. A problem here
+  # never turns the run red (continue-on-error).
+  logs:
+    name: Collect run logs
+    needs: [build, bundle, checks]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    continue-on-error: true
+    permissions:
+      contents: read
+      actions: read    # needed only to read the logs of this run
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: scripts
+          sparse-checkout-cone-mode: true
+
+      - name: Download job logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/collect_run_logs.py run-logs
+
+      - name: Write run summary
+        if: always()
+        run: |
+          {
+            echo '### Run logs (download artifact "logs")'
+            echo '```'
+            cat run-logs/run-summary.txt 2>/dev/null || echo 'no summary was produced'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: logs
+          path: run-logs
+          if-no-files-found: warn
+          retention-days: 14
