@@ -379,20 +379,24 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload CI report
+      # Only a hand-over to the "logs" job below, which merges it with the job
+      # logs into the single "ci-report" download and deletes this temporary one.
+      - name: Upload CI report (temporary)
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ci-report
+          name: ci-report-part
           path: report
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 1
 
-  # Always runs last (success, failure or cancellation) and publishes the
-  # logs of all other jobs as the third download: "logs". Together with
-  # "cartouch-firmware" (only when every build is green) and "ci-report"
-  # the run therefore always ends with the same downloads. A problem here
-  # never turns the run red (continue-on-error).
+  # Always runs last (success, failure or cancellation). It puts the check
+  # report and the logs of all other jobs into ONE download, "ci-report":
+  #   ci-report/report/   results of the checks and tests
+  #   ci-report/logs/     run-summary.txt, jobs.json and one .log per job
+  # Together with "cartouch-firmware" (only when every build is green) the run
+  # always ends with the same two downloads. A problem here never turns the
+  # run red (continue-on-error).
   logs:
     name: Collect run logs
     needs: [build, bundle, checks]
@@ -402,7 +406,7 @@ jobs:
     continue-on-error: true
     permissions:
       contents: read
-      actions: read    # needed only to read the logs of this run
+      actions: write   # read this run's logs; delete the temporary ci-report-part
 
     steps:
       - name: Checkout repository
@@ -411,26 +415,50 @@ jobs:
           sparse-checkout: scripts
           sparse-checkout-cone-mode: true
 
+      - name: Download check report
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: ci-report-part
+          path: ci-report/report
+
       - name: Download job logs
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/collect_run_logs.py run-logs
+        run: python3 scripts/collect_run_logs.py ci-report/logs
 
       - name: Write run summary
         if: always()
         run: |
           {
-            echo '### Run logs (download artifact "logs")'
+            echo '### Run logs (download artifact "ci-report", folder logs/)'
             echo '```'
-            cat run-logs/run-summary.txt 2>/dev/null || echo 'no summary was produced'
+            cat ci-report/logs/run-summary.txt 2>/dev/null || echo 'no summary was produced'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload logs
+      - name: Upload ci-report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: logs
-          path: run-logs
+          name: ci-report
+          path: ci-report
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Remove temporary report artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const list = await github.paginate(
+              github.rest.actions.listWorkflowRunArtifacts,
+              { owner, repo, run_id: context.runId });
+            for (const a of list) {
+              if (a.name === 'ci-report-part') {
+                await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
+                core.info('Deleted temporary artifact ' + a.name);
+              }
+            }
