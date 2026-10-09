@@ -4,6 +4,10 @@
 #include <stddef.h>
 #include <string.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Command verdicts
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // Gate applied to EVERY control command, whatever its source: Web
 // (/api/control and WebSocket), BLE, TFT and the USB Serial `control <cmd>`
 // console all end in handleCommand() -> queue -> processCommand().
@@ -18,6 +22,10 @@ enum CtCommandVerdict {
     CT_CMD_REJECT_LISTEN_ONLY,
     CT_CMD_REJECT_INVALID
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Command gating
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 static inline bool ctCommandIsSafeConfig(const char* cmd) {
     if (!cmd) return false;

@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Storage types
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 enum CtStorageChoice : uint8_t { CT_STORE_AUTO = 0, CT_STORE_INTERNAL = 1, CT_STORE_SD = 2 };
 enum CtStorageLoc    : uint8_t { CT_LOC_NONE = 0, CT_LOC_INTERNAL = 1, CT_LOC_SD = 2 };
 
@@ -10,6 +14,10 @@ struct CtStorageDecision {
     CtStorageLoc loc;
     bool fellBack;  // true when the user's explicit choice was unavailable
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Storage resolution
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // Keep this much internal space free before AUTO moves data to the SD card.
 #define CT_INTERNAL_RESERVE_BYTES 32768u
@@ -40,6 +48,10 @@ static inline CtStorageDecision ctResolveStorage(uint8_t choice,
     if (sdFits)  { d.loc = CT_LOC_SD; return d; }
     return d;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ SD pin policy
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // GPIO acceptable for optional peripherals on ESP32-S3: conservative reserve
 // list. Exclude strapping, USB/UART, nonexistent GPIO22-25, and flash/PSRAM

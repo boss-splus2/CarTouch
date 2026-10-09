@@ -23,8 +23,8 @@
 #define PIN_CAN_TX 17  // GPIO17 - CAN Transmit (next to GPIO18 = same order as CTX/CRX on the TJA1051 module)
 #define PIN_CAN_RX 18  // GPIO18 - CAN Receive
 
-#define PIN_CAN1_CS       15        // MCP2515 CS; SPI lines are shared with TFT/Touch
-#define PIN_CAN1_INT      16        // MCP2515 active-low interrupt
+#define PIN_CAN1_CS       15  // MCP2515 CS; SPI lines are shared with TFT/Touch
+#define PIN_CAN1_INT      16  // MCP2515 active-low interrupt
 #define CAN1_SPEED        500000
 #define CAN1_LISTEN_ONLY  true
 #define MCP2515_SPI_CLOCK 10000000
@@ -69,7 +69,7 @@
 
 #define TFT_WIDTH            240
 #define TFT_HEIGHT           320
-#define TFT_ROTATION         1    // 0-3
+#define TFT_ROTATION         1  // 0-3
 #define TFT_BRIGHTNESS_MAX   255
 #define TFT_BRIGHTNESS_NIGHT 50
 #define TFT_BRIGHTNESS_DAY   200
@@ -86,8 +86,8 @@
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 
 #define WIFI_AP_NAME        "CarTouch"
-#define WIFI_AP_CHANNEL     1           // 2.4 GHz channel of the access point
-#define WIFI_AP_MAX_CLIENTS 4           // Simultaneous Wi-Fi clients on the access point
+#define WIFI_AP_CHANNEL     1  // 2.4 GHz channel of the access point
+#define WIFI_AP_MAX_CLIENTS 4  // Simultaneous Wi-Fi clients on the access point
 // The Wi-Fi access point uses the same password as the web UI and BLE
 // (AppConfig::webPass). There is no separate Wi-Fi password in the source.
 #define WIFI_MAX_RETRY  20

@@ -110,7 +110,7 @@ public:
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 private:
-    SemaphoreHandle_t       _mutex;    // serializes _execute() across tasks
+    SemaphoreHandle_t       _mutex;  // serializes _execute() across tasks
     CANService&             _can;
     ActiveProfileManager&   _profileManager;
     uint8_t                 _lastError;
@@ -132,20 +132,20 @@ private:
     // (locks, alarm) are not motors and are exempt - they only go through
     // the base rate limit above.
     enum ActuatorClass : uint8_t {
-        ACTUATOR_NONE = 0,    // No duty-cycle limit (locks, alarm, trunk)
-        ACTUATOR_WINDOW,      // All 4 windows share one counter
+        ACTUATOR_NONE = 0,  // No duty-cycle limit (locks, alarm, trunk)
+        ACTUATOR_WINDOW,    // All 4 windows share one counter
         ACTUATOR_SUNROOF,
         ACTUATOR_MIRROR
     };
-    static const uint32_t ACTUATOR_DUTY_WINDOW_MS       = 10000;    // Rolling window
-    static const uint8_t  ACTUATOR_DUTY_MAX_ACTIVATIONS = 6;        // Max activations per window
-    static const uint32_t ACTUATOR_DUTY_COOLDOWN_MS     = 5000;     // Forced rest once the cap is hit
+    static const uint32_t ACTUATOR_DUTY_WINDOW_MS       = 10000;  // Rolling window
+    static const uint8_t  ACTUATOR_DUTY_MAX_ACTIVATIONS = 6;      // Max activations per window
+    static const uint32_t ACTUATOR_DUTY_COOLDOWN_MS     = 5000;   // Forced rest once the cap is hit
 
     struct ActuatorDutyState {
-        uint32_t activationTimestamps[ACTUATOR_DUTY_MAX_ACTIVATIONS];    // Circular buffer
-        uint8_t  count;                                                  // Entries recorded so far
-        uint8_t  nextSlot;                                               // Next write index
-        uint32_t cooldownUntil;                                          // 0 = no active cooldown
+        uint32_t activationTimestamps[ACTUATOR_DUTY_MAX_ACTIVATIONS];  // Circular buffer
+        uint8_t  count;                                                // Entries recorded so far
+        uint8_t  nextSlot;                                             // Next write index
+        uint32_t cooldownUntil;                                        // 0 = no active cooldown
     };
     ActuatorDutyState _windowDuty;
     ActuatorDutyState _sunroofDuty;

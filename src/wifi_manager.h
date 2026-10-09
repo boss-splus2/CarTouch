@@ -22,9 +22,9 @@
 
 enum WiFiState : uint8_t {
     CT_WIFI_DISABLED = 0,
-    CT_WIFI_AP       = 1,    // Access Point mode
-    CT_WIFI_STA      = 2,    // Station mode (connected to a router)
-    CT_WIFI_STA_FAIL = 3     // Station mode failed to connect
+    CT_WIFI_AP       = 1,  // Access Point mode
+    CT_WIFI_STA      = 2,  // Station mode (connected to a router)
+    CT_WIFI_STA_FAIL = 3   // Station mode failed to connect
 };
 
 class WiFiManager {
@@ -75,8 +75,8 @@ private:
     WiFiState _state;
     bool       _enabled;
     bool       _apUp = false;
-    bool       _pending = false;       // requestConnect() waiting for update()
-    bool       _connecting = false;    // a STA attempt is in progress
+    bool       _pending = false;     // requestConnect() waiting for update()
+    bool       _connecting = false;  // a STA attempt is in progress
     bool       _saveOnConnect = false;
     uint32_t   _connectStart = 0;
     uint32_t   _lastAttempt = 0;

@@ -7,6 +7,10 @@
 
 #include "can_service.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Record line formatting
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 static inline bool ctFormatCanRecordLine(const CanRxFrame& frame,
                                         char* output, size_t capacity,
                                         size_t& written) {
@@ -34,6 +38,10 @@ static inline bool ctFormatCanRecordLine(const CanRxFrame& frame,
     written = (size_t)result;
     return true;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Filename validation
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 static inline bool ctCanRecordFilenameValid(const char* name) {
     if (!name || strlen(name) != 11 || memcmp(name, "can", 3) != 0 ||

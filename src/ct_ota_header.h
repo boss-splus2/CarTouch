@@ -14,6 +14,10 @@
 #include <stdint.h>
 #include <string.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Header constants and result codes
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 #define CT_OTA_HEADER_LEN   24
 #define CT_OTA_IMAGE_MAGIC  0xE9
 #define CT_OTA_CHIP_ESP32S3 0x0009
@@ -27,6 +31,10 @@ enum CtOtaHdrResult : uint8_t {
     CT_OTA_HDR_WRONG_CHIP,
     CT_OTA_HDR_FLASH_TOO_BIG   // built for more flash than this device has
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Header check state
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // Collects the header across chunks (BLE writes can be as small as 20 bytes).
 struct CtOtaHeaderCheck {
@@ -70,6 +78,10 @@ static inline CtOtaHdrResult ctOtaHeaderFeed(CtOtaHeaderCheck& st,
     st.done = true;
     return CT_OTA_HDR_OK;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Result messages
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // Text for the web response / log.
 static inline const char* ctOtaHeaderMessage(CtOtaHdrResult r) {

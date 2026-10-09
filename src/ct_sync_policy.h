@@ -9,6 +9,10 @@
 #pragma once
 #include <cstdint>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Unit-test stub
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 #ifdef UNIT_TEST
 // Stub for unit tests (no FreeRTOS available)
 class CtSyncPolicy {
@@ -29,6 +33,10 @@ private:
 #else
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Firmware implementation
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 class CtSyncPolicy {
 public:

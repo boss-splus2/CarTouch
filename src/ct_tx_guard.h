@@ -10,12 +10,20 @@
 
 #include <stdint.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Guard result codes
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 enum CtTxGuardResult : uint8_t {
     CT_TX_OK = 0,
     CT_TX_ERR_NOT_INITIALIZED,  // driver not installed/started
     CT_TX_ERR_LISTEN_ONLY,      // TWAI actually running in Listen-Only
     CT_TX_ERR_LENGTH            // DLC > 8
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ TX admission checks
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 /**
  * @param initialized       CAN driver is installed and started
@@ -52,6 +60,10 @@ static inline CtTxGuardResult ctVehicleTxGuard(bool configListenOnly, bool busAc
     if (configListenOnly) return CT_TX_ERR_LISTEN_ONLY;
     return ctTxGuard(busActive, driverListenOnly, length);
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Frame identity helper
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 static inline bool ctSameCanFrameId(uint32_t lhsId, bool lhsExtended,
                                     uint32_t rhsId, bool rhsExtended) {

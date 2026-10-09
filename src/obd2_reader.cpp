@@ -16,14 +16,14 @@
 
 #define OBD_REQUEST_ID 0x7DF    // Broadcast request
 
-#define OBD_MODE_CURRENT   0x01    // Show current data
-#define OBD_MODE_FREEZE    0x02    // Freeze frame data
-#define OBD_MODE_DTC       0x03    // Read DTCs
-#define OBD_MODE_CLEAR_DTC 0x04    // Clear DTCs
+#define OBD_MODE_CURRENT   0x01  // Show current data
+#define OBD_MODE_FREEZE    0x02  // Freeze frame data
+#define OBD_MODE_DTC       0x03  // Read DTCs
+#define OBD_MODE_CLEAR_DTC 0x04  // Clear DTCs
 
-#define PID_SUPPORTED_1 0x00    // Supported PIDs 0x01-0x20
-#define PID_SUPPORTED_2 0x20    // Supported PIDs 0x21-0x40
-#define PID_SUPPORTED_3 0x40    // Supported PIDs 0x41-0x60
+#define PID_SUPPORTED_1 0x00  // Supported PIDs 0x01-0x20
+#define PID_SUPPORTED_2 0x20  // Supported PIDs 0x21-0x40
+#define PID_SUPPORTED_3 0x40  // Supported PIDs 0x41-0x60
 
 // ○○○○○○○○○○○○○○○○○○○○○○○○○○○○○○
 // ○○○○○○○○○○ Constructor
@@ -33,14 +33,14 @@ OBD2Reader::OBD2Reader(CANService& canService)
     : _can(canService), _bus(CAN_BUS_1), _rxSubscribed(false) {
     _lastError        = 0;
     _lastRequestTime   = 0;
-    _requestInterval    = 50;    // Minimum spacing between requests (ms)
+    _requestInterval    = 50;  // Minimum spacing between requests (ms)
 
     _pollState          = OBD_POLL_IDLE;
     _pollIndex          = 0;
     _pollWaitStartMs     = 0;
     _hasCompletedRound   = false;
     for (uint8_t i = 0; i < _POLL_PID_COUNT; ++i) { _lastAnswerMs[i] = 0; _everAnswered[i] = false; }
-    _pollIntervalMs       = 200;            // Spacing between completed rounds
+    _pollIntervalMs       = 200;  // Spacing between completed rounds
     _lastRoundStartMs      = 0;
     _diagnosticState = OBD_DIAG_IDLE;
     _diagnosticOperation = OBD_DIAG_OP_NONE;
@@ -106,7 +106,7 @@ bool OBD2Reader::requestPID(uint8_t pid, ObdResponse& response) {
     request.isExtended  = false;
     request.isRemote    = false;
     request.length      = 8;
-    request.data[0]     = 0x02;                // Valid byte count
+    request.data[0]     = 0x02;  // Valid byte count
     request.data[1]     = OBD_MODE_CURRENT;
     request.data[2]     = pid;
     request.data[3]     = 0x00;
@@ -361,7 +361,7 @@ void OBD2Reader::_pollCheckResponse() {
         if (!ctParseObdSingleFrame(reply.data, reply.length,
                                    (uint8_t)(OBD_MODE_CURRENT + 0x40), pid, parsed) ||
             parsed.payloadLength < 3) {
-            continue;    // e.g. negative response or another PID's reply
+            continue;  // e.g. negative response or another PID's reply
         }
 
         const uint8_t dataLength = (uint8_t)(parsed.payloadLength - 2);
@@ -388,7 +388,7 @@ void OBD2Reader::_pollCheckResponse() {
     if ((uint32_t)(millis() - _pollWaitStartMs) > 200) {
         ObdResponse timeoutResp;
         timeoutResp.success = false;
-        _applyPidToData(pid, timeoutResp, _pendingData);    // Previous value kept
+        _applyPidToData(pid, timeoutResp, _pendingData);  // Previous value kept
 
         _pollIndex++;
         _pollState = (_pollIndex >= _POLL_PID_COUNT) ? OBD_POLL_DONE : OBD_POLL_SENDING;
@@ -674,10 +674,10 @@ uint8_t OBD2Reader::readDTCs(uint16_t dtcList[], uint8_t maxCount) {
         return 0;
     }
 
-    uint8_t payload[1 + (2 * MAX_DTC_COUNT)] = {};
-    uint16_t payloadLength = 0;
-    bool complete = false;
-    const uint32_t startMs = millis();
+    uint8_t        payload[1 + (2 * MAX_DTC_COUNT)] = {};
+    uint16_t       payloadLength                    = 0;
+    bool           complete                         = false;
+    const uint32_t startMs                          = millis();
 
     while (!ctElapsedAtLeast(millis(), startMs, 1000)) {
         CanMessage reply = {};

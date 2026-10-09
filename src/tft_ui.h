@@ -72,7 +72,7 @@ public:
     void setWiFiStatus(bool connected);
     void setModuleStatus(ModuleId id, ModuleState state);
     void setTheme(ThemeMode mode);
-    void showNotification(const char* message);    // thread-safe: queued, rendered by update()
+    void showNotification(const char* message);  // thread-safe: queued, rendered by update()
     void setDeviceMode(DeviceMode mode);
 
     /**
@@ -136,7 +136,7 @@ private:
     lv_obj_t* _statusWiFi;
     lv_obj_t* _moduleStatusLabels[MODULE_COUNT];
     lv_obj_t* _notification;
-    void _renderNotification(const char* message);    // LVGL task only
+    void _renderNotification(const char* message);  // LVGL task only
 
     // -- Password change screen --------------------------------------------------
     lv_obj_t* _passwordScreen;
@@ -144,11 +144,11 @@ private:
     lv_obj_t* _taNewPass;
     lv_obj_t* _taConfirmPass;
     lv_obj_t* _passwordErrorLabel;
-    lv_obj_t* _keyboard;                // Shared virtual keyboard (password screen + Learn Mode)
+    lv_obj_t* _keyboard;  // Shared virtual keyboard (password screen + Learn Mode)
 
     // -- Learn tab: main view ------------------------------------------------------
     lv_obj_t* _learnMainContainer;
-    lv_obj_t* _learnVehicleList;           // Custom profile list, with status
+    lv_obj_t* _learnVehicleList;  // Custom profile list, with status
     lv_obj_t* _learnActiveVehicleLabel;
 
     // -- Learn tab: wizard modal ----------------------------------------------------
@@ -156,11 +156,11 @@ private:
     lv_obj_t* _learnWizardTitle;
     lv_obj_t* _learnWizardStatusLabel;
     lv_obj_t* _learnWizardProgressBar;
-    lv_obj_t* _learnWizardCandidateList;    // Candidates found after capture
-    lv_obj_t* _learnWizardActionBtn;        // Label changes: Start/Continue/Confirm
+    lv_obj_t* _learnWizardCandidateList;  // Candidates found after capture
+    lv_obj_t* _learnWizardActionBtn;      // Label changes: Start/Continue/Confirm
     lv_obj_t* _learnWizardCancelBtn;
-    lv_obj_t* _learnLabelDropdown;          // Command label picker
-    int       _selectedCandidateIndex;      // -1 = none selected
+    lv_obj_t* _learnLabelDropdown;        // Command label picker
+    int       _selectedCandidateIndex;    // -1 = none selected
 
     // -- Learn tab: manual entry modal -----------------------------------------------
     lv_obj_t* _manualEntryScreen;
@@ -195,7 +195,7 @@ private:
     void _buildLearnWizardScreen();
     void _openLearnWizard();
     void _closeLearnWizard(bool cancelSession = true);
-    void _refreshLearnWizardUI();                 // Redraws based on learnEngine->getState()
+    void _refreshLearnWizardUI();  // Redraws based on learnEngine->getState()
     void _onLearnWizardActionPressed();
     void _onLearnCandidateSelected(int index);
     void _saveLearnedCommand();

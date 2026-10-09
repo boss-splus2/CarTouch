@@ -1,5 +1,9 @@
 #include "module_status.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Construction and setup
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 ModuleStatusManager::ModuleStatusManager() {
     for (uint8_t i = 0; i < MODULE_COUNT; ++i) {
         _status[i] = ModuleStatus();
@@ -37,6 +41,10 @@ void ModuleStatusManager::_writePin(int8_t pin, uint8_t value) {
     digitalWrite(pin, value ? on : off);
 }
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ State management
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 void ModuleStatusManager::setState(ModuleId id, ModuleState state) {
     if (id >= MODULE_COUNT) return;
     _status[id].state = state;
@@ -66,6 +74,10 @@ void ModuleStatusManager::setState(ModuleId id, ModuleState state) {
     }
     updateRGB(id);
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Accessors
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 ModuleState ModuleStatusManager::getState(ModuleId id) const {
     return (id < MODULE_COUNT) ? _status[id].state : MODULE_ERROR;
@@ -115,6 +127,10 @@ const char* ModuleStatusManager::stateText(ModuleState state) const {
         default: return "NOT DETECTED";
     }
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ RGB output
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 void ModuleStatusManager::updateRGB(ModuleId id) {
     if (id >= MODULE_COUNT) return;

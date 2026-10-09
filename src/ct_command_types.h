@@ -19,6 +19,10 @@
 #include <string.h>
 #include "ct_command_actuator.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Command enums
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 enum CommandStatus : uint8_t {
     CMD_UNVERIFIED = 0,  // Saved but not yet user-confirmed - not executable
     CMD_VERIFIED   = 1   // User explicitly confirmed this works on the vehicle
@@ -29,6 +33,10 @@ enum CommandSource : uint8_t {
     SOURCE_LEARNED = 1,  // Captured via Learn Mode from a real physical button press
     SOURCE_MANUAL  = 2   // Entered manually by the user
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Standard command labels
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // Standard suggested command labels (see CarTouch_SPEC.md). These are just
 // suggested strings - the user can also enter a free-form custom label,
@@ -59,6 +67,10 @@ enum CommandSource : uint8_t {
 #define CMD_LABEL_ALARM_DISARM     "alarm_disarm"
 // For a custom label, the user enters a free-form string that is stored
 // directly as the label (no special prefix required).
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Stored-state readers
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 /**
  * Status of a command read back from a profile.

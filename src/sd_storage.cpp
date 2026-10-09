@@ -6,15 +6,23 @@
 #include "buttons.h"
 #include "ct_sync_policy.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Globals and constants
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 SdStorage sdStorage;
 
 static const uint32_t SD_RETRY_MS = 5000;
 static const uint32_t SD_CHECK_MS = 2000;
-static const uint32_t SD_SPI_HZ   = 10000000;   // conservative on a shared bus
+static const uint32_t SD_SPI_HZ   = 10000000;  // conservative on a shared bus
 
 static bool nvsOpen(nvs_handle_t& h, bool write) {
     return nvs_open("CarTouch", write ? NVS_READWRITE : NVS_READONLY, &h) == ESP_OK;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Mount lifecycle
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 void SdStorage::begin() {
     nvs_handle_t h;
@@ -67,6 +75,10 @@ void SdStorage::update() {
     if (now - _lastTryMs >= SD_RETRY_MS) _mount();
 }
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Status and pin configuration
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 uint64_t SdStorage::freeBytes() const {
     if (_state != READY) return 0;
     const uint64_t t = SD.totalBytes(), u = SD.usedBytes();
@@ -112,6 +124,10 @@ const char* SdStorage::stateText() const {
         default: return "DISABLED (no CS pin set)";
     }
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Per-category storage choice
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // ---- per-category storage choice (NVS u8 keys; AUTO is the default) ----
 static const char* choiceKey(const char* c) {

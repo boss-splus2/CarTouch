@@ -163,7 +163,7 @@ VehicleControl::ActuatorClass VehicleControl::_classifyLabel(const char* label) 
 
 bool VehicleControl::_checkDutyCycle(ActuatorClass cls, String& outErrorReason) {
     ActuatorDutyState* state = _dutyStateFor(cls);
-    if (!state) return true;                          // ACTUATOR_NONE: no limit applies
+    if (!state) return true;  // ACTUATOR_NONE: no limit applies
 
     uint32_t now = millis();
 
@@ -419,5 +419,5 @@ uint8_t VehicleControl::getLastError() {
 
 String VehicleControl::getLastErrorMessage() {
     CtCtrlLock lock(_mutex);
-    return _lastErrorMessage;    // copied while locked
+    return _lastErrorMessage;  // copied while locked
 }

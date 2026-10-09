@@ -8,6 +8,10 @@
 #include "ct_sha256.h"
 #include "ct_storage_policy.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Status codes
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 enum DbcStoreStatus : uint8_t {
     DBC_STORE_OK = 0,
     DBC_STORE_BUSY,
@@ -22,6 +26,10 @@ enum DbcStoreStatus : uint8_t {
     DBC_STORE_NOT_FOUND,
     DBC_STORE_CONFIRMATION_REQUIRED
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ DbcStore class
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 class DbcStore {
 public:
@@ -83,6 +91,10 @@ private:
     bool _lineTooLong = false;
     bool _sizeKnown = true;
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Global instance
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 extern DbcStore dbcStore;
 

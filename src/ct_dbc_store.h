@@ -14,7 +14,7 @@
 // Built-in profiles keep the path in char dbcFileName[32]: "/dbc/" (5) + name (<=26) + NUL.
 #define CT_DBC_DIR       "/dbc/"
 #define CT_DBC_NAME_MAX  26u
-#define CT_DBC_MAX_BYTES 409600u  // largest accepted upload (400 KB)
+#define CT_DBC_MAX_BYTES 409600u     // largest accepted upload (400 KB)
 // Must equal MAX_DBC_MESSAGES in vehicle_db.h (the loader silently skips the rest).
 #define CT_DBC_MAX_MESSAGES  400u
 #define CT_DBC_RESERVE_BYTES 32768u  // free space that must remain after an upload

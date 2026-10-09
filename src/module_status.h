@@ -4,6 +4,10 @@
 #include <Arduino.h>
 #include "config.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Module and state types
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 enum ModuleId : uint8_t {
     MODULE_WIFI = 0,
     MODULE_WEB,
@@ -34,10 +38,14 @@ enum ModuleState : uint8_t {
 
 struct ModuleStatus {
     ModuleState state = MODULE_NOT_PRESENT;
-    uint8_t r = 0;
-    uint8_t g = 0;
-    uint8_t b = 0;
+    uint8_t     r     = 0;
+    uint8_t     g     = 0;
+    uint8_t     b     = 0;
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ RGB LED configuration
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // RGB outputs are intentionally disabled by default because the physical
 // LED wiring/pin map is board-specific. Set these to the three GPIOs of each
@@ -62,6 +70,10 @@ struct ModuleStatus {
 #define RGB_TOUCH_R -1
 #define RGB_TOUCH_G -1
 #define RGB_TOUCH_B -1
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ ModuleStatusManager
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 class ModuleStatusManager {
 public:

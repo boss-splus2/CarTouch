@@ -13,6 +13,10 @@
 #include <string.h>
 #include "ct_dbc_store.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Manifest entry and format constants
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 struct CtDbcManifestEntry {
     char     name[CT_DBC_NAME_MAX + 1];
     uint32_t size;
@@ -25,6 +29,10 @@ struct CtDbcManifestEntry {
 
 #define CT_DBC_MANIFEST_HEADER "{\"format\":1,\"files\":["
 #define CT_DBC_MANIFEST_FOOTER "]}"
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ JSON field helpers
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 static inline bool ctDbcIsHex64(const char* s) {
     if (!s || strlen(s) != 64) return false;
@@ -87,6 +95,10 @@ static inline bool ctDbcJsonStrOptional(const char* line, const char* key,
     memcpy(out, fallback, fallbackLength + 1);
     return true;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Manifest line parse and format
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // One manifest line -> entry. False for header/footer lines and for anything invalid
 // (bad name, bad hash, zero size, missing field, truncated line).

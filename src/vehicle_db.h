@@ -39,30 +39,30 @@ enum SignalType : uint8_t {
 };
 
 struct DbcSignal {
-    char       name[32]    = {0};         // e.g. "DoorLockStatus"
-    uint8_t    startBit     = 0;          // Start bit, as defined by the raw DBC (see isBigEndian)
-    uint8_t    length        = 0;         // Signal length, bits
-    SignalType type   = SIG_UNSIGNED;
-    float      scale  = 1.0f;
-    float      offset = 0.0f;
-    float      min    = 0.0f;
-    float      max    = 100.0f;
-    char       unit[8]        = {0};      // e.g. "km/h"
-    char       comment[64]      = {0};
-    bool    isMultiplexed  = false;
-    uint8_t multiplexValue = 0;
+    char       name[32]       = {0};  // e.g. "DoorLockStatus"
+    uint8_t    startBit       = 0;    // Start bit, as defined by the raw DBC (see isBigEndian)
+    uint8_t    length         = 0;    // Signal length, bits
+    SignalType type           = SIG_UNSIGNED;
+    float      scale          = 1.0f;
+    float      offset         = 0.0f;
+    float      min            = 0.0f;
+    float      max            = 100.0f;
+    char       unit[8]        = {0};  // e.g. "km/h"
+    char       comment[64]    = {0};
+    bool       isMultiplexed  = false;
+    uint8_t    multiplexValue = 0;
 
     // DBC signal byte order: '@0' = Motorola/big-endian (bit numbering
     // from each byte's MSB), '@1' = Intel/little-endian (from the LSB).
     // Both are supported - see extractSignalValue()/encodeSignalValue()
     // in vehicle_db.cpp for the bit-mapping logic.
-    bool isBigEndian = false;    // true = Motorola (@0), false = Intel (@1)
+    bool isBigEndian = false;  // true = Motorola (@0), false = Intel (@1)
 };
 
 struct DbcMessage {
     uint32_t   canId         = 0;
     bool       isExtended    = false;  // true = 29-bit CAN frame
-    char       name[32]       = {0};        // e.g. "DoorStatus"
+    char       name[32]       = {0};   // e.g. "DoorStatus"
     uint8_t    dlc              = 8;
     char       transmitter[24]   = {0};
     uint16_t   signalCount        = 0;
@@ -70,11 +70,11 @@ struct DbcMessage {
 };
 
 struct VehicleProfile {
-    char     brand[24]        = {0};       // e.g. "Toyota"
-    char     model[24]         = {0};      // e.g. "Camry"
-    uint16_t yearStart = 0;
-    uint16_t yearEnd   = 0;
-    char     dbcFileName[32]     = {0};
+    char     brand[24]       = {0};  // e.g. "Toyota"
+    char     model[24]       = {0};  // e.g. "Camry"
+    uint16_t yearStart       = 0;
+    uint16_t yearEnd         = 0;
+    char     dbcFileName[32] = {0};
 };
 
 // Capacity of the built-in vehicle list (begin() adds entries up to this limit).

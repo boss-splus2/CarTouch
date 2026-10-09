@@ -1292,7 +1292,7 @@ void WebServerManager::_registerCustomVehicleRoutes() {
                 return;
             }
         }
-        cmd.status                 = CMD_UNVERIFIED;                                   // Always starts unverified
+        cmd.status                 = CMD_UNVERIFIED;  // Always starts unverified
         cmd.timesObserved             = 0;
         cmd.failCount                    = 0;
         cmd.createdAt                       = millis();
@@ -1639,7 +1639,7 @@ void WebServerManager::_handleOtaUpload(AsyncWebServerRequest* request, const St
         }
 
         if (Update.isRunning()) { _otaError = "Another update transaction is active"; ctOtaLock().release(CT_OTA_OWNER_WEB); return; }
-        if (_otaIsFs) SPIFFS.end();                // Before writing to the filesystem partition
+        if (_otaIsFs) SPIFFS.end();  // Before writing to the filesystem partition
 
         if (!Update.begin(UPDATE_SIZE_UNKNOWN, _otaIsFs ? U_SPIFFS : U_FLASH)) {
             _otaError = String("Failed to start update: ") + Update.errorString();
@@ -1891,7 +1891,7 @@ void WebServerManager::_handleLearnModeMessage(AsyncWebSocketClient* client, Jso
 
         LearnedCommand cmd;
         strncpy(cmd.label, snapshot.label, sizeof(cmd.label) - 1);
-        cmd.label[sizeof(cmd.label) - 1] = '\0';    // strncpy may not NUL-terminate on truncation
+        cmd.label[sizeof(cmd.label) - 1] = '\0';  // strncpy may not NUL-terminate on truncation
         strncpy(cmd.displayName, snapshot.displayName, sizeof(cmd.displayName) - 1);
         cmd.displayName[sizeof(cmd.displayName) - 1] = '\0';
 
@@ -1910,7 +1910,7 @@ void WebServerManager::_handleLearnModeMessage(AsyncWebSocketClient* client, Jso
         memcpy(cmd.data, candidate.data, candidate.length);
         cmd.source                 = SOURCE_LEARNED;
         cmd.actuatorClass         = ctSuggestedActuatorClassForStandardLabel(cmd.label);
-        cmd.status                    = CMD_UNVERIFIED;                                                  // Always starts unverified
+        cmd.status                    = CMD_UNVERIFIED;  // Always starts unverified
         cmd.timesObserved                = candidate.seenCountInAction;
         cmd.failCount                       = 0;
         cmd.createdAt                          = millis();
@@ -2012,9 +2012,9 @@ void WebServerManager::_handleLearnModeMessage(AsyncWebSocketClient* client, Jso
             client->printf("{\"type\":\"verify_confirmed\",\"success\":false,\"message\":\"Command profile is invalid\"}");
             return;
         }
-        const char* label     = doc["label"] | "";
-        bool        success   = doc["success"] | false;
-        uint32_t    token     = doc["verifyToken"] | 0;
+        const char* label   = doc["label"] | "";
+        bool        success = doc["success"] | false;
+        uint32_t    token   = doc["verifyToken"] | 0;
 
         WsClientAuth* vAuth = _findClientAuth(client->id());
         if (!vAuth) {
@@ -2356,7 +2356,7 @@ void WebServerManager::_registerLoginFailure(uint32_t ip) {
     if (t->fails < 255) t->fails++;
     if (t->fails >= LOGIN_MAX_ATTEMPTS) {
         uint32_t until = millis() + LOGIN_LOCKOUT_MS;
-        t->lockUntil = (until == 0) ? 1 : until;    // 0 is the "not locked" sentinel
+        t->lockUntil = (until == 0) ? 1 : until;  // 0 is the "not locked" sentinel
         getErrorLog()->log(LOG_CAT_WEB, LOG_WARN,
             "Login lockout triggered after %u failed attempts", t->fails);
     }
@@ -2443,22 +2443,22 @@ void WebServerManager::_handleAPICanConfig(AsyncWebServerRequest* request) {
         return;
     }
 
-    const String txArg = request->arg("txPin");
-    const String rxArg = request->arg("rxPin");
-    const String speedArg = request->arg("speed");
-    const String listenOnlyArg = request->arg("listenOnly");
-    AppConfig* cfg = getConfig();
-    uint8_t tx = 0;
-    uint8_t rx = 0;
-    uint8_t can1CsPin = cfg->can1CsPin;
-    uint8_t can1IntPin = cfg->can1IntPin;
-    uint32_t speed = 0;
-    uint32_t can1Speed = cfg->can1Speed;
-    bool listenOnly = false;
-    bool can1ListenOnly = cfg->can1ListenOnly;
-    uint8_t obdCanBus = cfg->obdCanBus;
-    uint8_t learnCanBus = cfg->learnCanBus;
-    uint8_t vehicleCanBus = cfg->vehicleCanBus;
+    const String txArg          = request->arg("txPin");
+    const String rxArg          = request->arg("rxPin");
+    const String speedArg       = request->arg("speed");
+    const String listenOnlyArg  = request->arg("listenOnly");
+    AppConfig*   cfg            = getConfig();
+    uint8_t      tx             = 0;
+    uint8_t      rx             = 0;
+    uint8_t      can1CsPin      = cfg->can1CsPin;
+    uint8_t      can1IntPin     = cfg->can1IntPin;
+    uint32_t     speed          = 0;
+    uint32_t     can1Speed      = cfg->can1Speed;
+    bool         listenOnly     = false;
+    bool         can1ListenOnly = cfg->can1ListenOnly;
+    uint8_t      obdCanBus      = cfg->obdCanBus;
+    uint8_t      learnCanBus    = cfg->learnCanBus;
+    uint8_t      vehicleCanBus  = cfg->vehicleCanBus;
 
     const bool can0Valid = ctParseBoundedIndex(txArg.c_str(), 49, tx) &&
                            ctParseBoundedIndex(rxArg.c_str(), 49, rx) &&

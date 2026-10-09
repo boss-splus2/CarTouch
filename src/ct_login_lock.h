@@ -7,6 +7,10 @@
 // (command login and OTA start). One shared counter means an attacker cannot
 // get 5 guesses on each path per minute: all wrong guesses add up.
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Lockout constants and state
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 #define CT_LOGIN_MAX_FAILS 5u
 #define CT_LOGIN_LOCK_MS   60000u
 
@@ -15,6 +19,10 @@ struct CtLoginLock {
     uint32_t lockUntil = 0;
     bool     locked    = false;
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Lockout logic
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // true while locked out. An expired lock is cleared here.
 static inline bool ctLoginLocked(CtLoginLock& l, uint32_t nowMs) {

@@ -4,7 +4,15 @@
 #include <Arduino.h>
 #include "ct_login_lock.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Callback types
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 typedef void (*BLECommandCallback)(const char* command);
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ BLEManager
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 /**
  * BLE control/status and firmware OTA manager.
@@ -70,6 +78,10 @@ private:
     friend class CommandCallbacks;
     friend class DataCallbacks;
 };
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Global instance
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 extern BLEManager bleManager;
 

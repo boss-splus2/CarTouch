@@ -5,6 +5,10 @@
 #include <stddef.h>
 #include <string.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Command fingerprint
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 static inline uint32_t ctVerifyFingerprint(uint8_t profileId, uint32_t profileRevision,
                                            const char* label, uint32_t canId, bool extended,
                                            uint8_t length, const uint8_t* data) {
@@ -25,6 +29,10 @@ static inline uint32_t ctVerifyFingerprint(uint8_t profileId, uint32_t profileRe
     for (uint8_t i = 0; i < length; ++i) add(data ? data[i] : 0);
     return h == 0 ? 1 : h;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Transaction validation
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 static inline bool ctVerifyTransactionValid(bool active, uint8_t pendingProfileId,
                                             const char* pendingLabel, uint32_t pendingToken,

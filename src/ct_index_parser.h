@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <string.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Decimal parsing
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 static inline bool ctParseUnsignedDecimal(const char* text, uint32_t maximum,
                                           uint32_t& value) {
     if (!text || !*text) return false;
@@ -20,6 +24,10 @@ static inline bool ctParseUnsignedDecimal(const char* text, uint32_t maximum,
     return true;
 }
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Boolean parsing
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 static inline bool ctParseBoolean(const char* text, bool& value) {
     if (!text) return false;
     if (strcmp(text, "true") == 0 || strcmp(text, "1") == 0) {
@@ -32,6 +40,10 @@ static inline bool ctParseBoolean(const char* text, bool& value) {
     }
     return false;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Bounded index parsing
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 static inline bool ctParseBoundedIndex(const char* text, uint8_t limit,
                                        uint8_t& index) {

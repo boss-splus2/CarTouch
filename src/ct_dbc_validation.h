@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Signal bounds
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // Returns true if every bit occupied by a DBC signal lies inside messageDlc.
 // Handles Intel linear bit numbering and Motorola saw-tooth bit numbering.
 static inline bool ctDbcSignalFitsDlc(uint8_t startBit, uint8_t length,
@@ -22,6 +26,10 @@ static inline bool ctDbcSignalFitsDlc(uint8_t startBit, uint8_t length,
     }
     return true;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ CAN ID decoding
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // Decode a DBC message ID into the arbitration ID used by the CAN controller
 // and the frame format. The DBC convention sets bit 31 for extended frames.

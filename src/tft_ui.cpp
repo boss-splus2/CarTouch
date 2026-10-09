@@ -81,7 +81,7 @@ static uint32_t s_keyQueue[8];
 static uint8_t  s_keyHead = 0, s_keyCount = 0;
 static bool     s_keyReleasePending = false;
 static uint32_t s_keyLast = 0;
-static int8_t   s_keyDir = 1;   // last navigation direction, used to skip hidden objects
+static int8_t   s_keyDir = 1;  // last navigation direction, used to skip hidden objects
 
 void TFT_UI::pushKey(uint8_t ctKey, bool longPress) {
     uint32_t lv = 0;
@@ -448,7 +448,7 @@ bool TFT_UI::runTouchCalibration() {
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setCursor(20, 20);
     tft.println("Calibration saved ✓");
-    delay(1000);                               // Runs once at boot/settings only - blocking here has no impact
+    delay(1000);  // Runs once at boot/settings only - blocking here has no impact
 
     Serial.printf("[TFT] Calibration saved: {%u,%u,%u,%u,%u}\n",
                   s_calibData[0], s_calibData[1], s_calibData[2],
@@ -1062,7 +1062,7 @@ void TFT_UI::_saveLearnedCommand() {
     memcpy(cmd.data, candidate.data, candidate.length);
     cmd.source        = SOURCE_LEARNED;
     cmd.actuatorClass = ctSuggestedActuatorClassForStandardLabel(cmd.label);
-    cmd.status        = CMD_UNVERIFIED;                                                              // Always starts unverified
+    cmd.status        = CMD_UNVERIFIED;  // Always starts unverified
     cmd.timesObserved = candidate.seenCountInAction;
     cmd.failCount     = 0;
     cmd.createdAt     = millis();
@@ -1216,7 +1216,7 @@ void TFT_UI::_submitManualEntry() {
     cmd.isExtended    = extended;
     cmd.source        = SOURCE_MANUAL;
     cmd.actuatorClass = ctSuggestedActuatorClassForStandardLabel(cmd.label);
-    cmd.status        = CMD_UNVERIFIED;                                                               // Manual entries also always start unverified
+    cmd.status        = CMD_UNVERIFIED;  // Manual entries also always start unverified
     cmd.timesObserved = 0;
     cmd.failCount     = 0;
     cmd.createdAt     = millis();
@@ -1263,7 +1263,7 @@ void TFT_UI::_buildVerifyScreen() {
     _verifyScreen = lv_obj_create(lv_scr_act());
     lv_obj_set_size(_verifyScreen, TFT_WIDTH, TFT_HEIGHT);
     lv_obj_set_pos(_verifyScreen, 0, 0);
-    lv_obj_set_style_bg_color(_verifyScreen, lv_color_hex(0x2A0F0F), 0);    // Dark red background - warning cue
+    lv_obj_set_style_bg_color(_verifyScreen, lv_color_hex(0x2A0F0F), 0);  // Dark red background - warning cue
     lv_obj_set_style_bg_opa(_verifyScreen, LV_OPA_COVER, 0);
     lv_obj_add_flag(_verifyScreen, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(_verifyScreen, LV_OBJ_FLAG_SCROLLABLE);
@@ -1826,7 +1826,7 @@ void TFT_UI::showNotification(const char* message) {
 
 void TFT_UI::_renderNotification(const char* message) {
     if (_notification) {
-        lv_obj_del(_notification);    // DELETE event below resets _notification
+        lv_obj_del(_notification);  // DELETE event below resets _notification
         _notification = nullptr;
     }
 

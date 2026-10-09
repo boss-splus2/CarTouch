@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Hex parsing
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // Strict, allocation-free hexadecimal parsing shared by Web and TFT.
 static inline bool ctParseHexUint32(const char* text, uint32_t& value, size_t maxDigits) {
     if (!text || !*text || maxDigits == 0) return false;
@@ -25,6 +29,10 @@ static inline bool ctParseHexUint32(const char* text, uint32_t& value, size_t ma
     value = result;
     return true;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Byte tokens
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 static inline bool ctParseHexByteToken(const char* token, uint8_t& value) {
     if (!token || !*token) return false;

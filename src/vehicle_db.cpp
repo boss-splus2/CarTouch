@@ -453,7 +453,7 @@ bool VehicleDB::_parseSignalLine(const char* line) {
         }
 
         sig->type       = (sign[0] == '-') ? SIG_SIGNED : SIG_UNSIGNED;
-        sig->isBigEndian = bigEndian;                                           // '@0' = Motorola, '@1' = Intel
+        sig->isBigEndian = bigEndian;  // '@0' = Motorola, '@1' = Intel
 
         msg->signals.push_back(parsedSignal);
         msg->signalCount = static_cast<uint16_t>(msg->signals.size());

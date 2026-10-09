@@ -5,6 +5,10 @@
 #include <string.h>
 #include <strings.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Cross-site request protection
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // Cross-site request protection for the web server.
 //
 // A browser sends the "Origin" header on every cross-site POST. The page served
@@ -22,6 +26,10 @@ static inline bool ctOriginAllowed(const char* origin, const char* host) {
     if (strncasecmp(origin, prefix, prefixLen) != 0) return false;
     return strcasecmp(origin + prefixLen, host) == 0;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ DNS-rebinding protection
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 // DNS-rebinding protection.
 //

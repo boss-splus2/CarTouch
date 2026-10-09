@@ -5,6 +5,10 @@
 #include <stdint.h>
 #include <string.h>
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Label validation
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 // A command label is a machine key (e.g. "lock_all"). Only letters, digits,
 // '_', '-', '.' and space are accepted, so a label can never carry HTML or
 // quote characters into the web page (defence in depth next to escapeHtml()).
@@ -19,6 +23,10 @@ static inline bool ctLabelIsSafe(const char* label) {
     }
     return true;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Imported command validation
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 struct CtJsonCommandFields {
     const char* label       = nullptr;

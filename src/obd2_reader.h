@@ -21,10 +21,10 @@
 // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 enum ObdPollState : uint8_t {
-    OBD_POLL_IDLE = 0,    // Between rounds, waiting for the next one to start
-    OBD_POLL_SENDING,     // Sending the request for the current PID
-    OBD_POLL_WAITING,     // Waiting for the current PID's response (no delay/loop)
-    OBD_POLL_DONE         // A full round (all PIDs) has completed
+    OBD_POLL_IDLE = 0,  // Between rounds, waiting for the next one to start
+    OBD_POLL_SENDING,   // Sending the request for the current PID
+    OBD_POLL_WAITING,   // Waiting for the current PID's response (no delay/loop)
+    OBD_POLL_DONE       // A full round (all PIDs) has completed
 };
 
 enum ObdDiagnosticState : uint8_t {
@@ -43,11 +43,11 @@ enum ObdDiagnosticOperation : uint8_t {
 };
 
 struct ObdResponse {
-    uint8_t  pid;          // Requested PID
-    uint8_t  data[6];      // Response payload (up to 6 bytes)
-    uint8_t  length;       // Actual payload length
-    bool     success;      // true if the response is valid
-    uint32_t timestamp;    // Reception time (millis)
+    uint8_t  pid;        // Requested PID
+    uint8_t  data[6];    // Response payload (up to 6 bytes)
+    uint8_t  length;     // Actual payload length
+    bool     success;    // true if the response is valid
+    uint32_t timestamp;  // Reception time (millis)
 };
 
 class OBD2Reader {
@@ -143,7 +143,7 @@ private:
     bool _rxSubscribed;
     uint8_t     _lastError;
     uint32_t    _lastRequestTime;
-    uint32_t    _requestInterval;    // Minimum spacing between requests (ms)
+    uint32_t    _requestInterval;  // Minimum spacing between requests (ms)
 
     bool _sendOBDRequest(uint8_t pid, uint8_t expectedDataLength);
     bool _parseOBDResponse(const uint8_t* rawData, uint8_t length,
@@ -152,14 +152,14 @@ private:
     // -- Non-blocking poll state machine (update()) --------------------------
     static const uint8_t _POLL_PID_COUNT = 7;
     ObdPollState _pollState;
-    uint8_t      _pollIndex;                     // Current PID index within _POLL_PID_COUNT
-    uint32_t     _pollWaitStartMs;               // When the current PID's wait started
-    VehicleData  _pendingData;                   // Data being assembled this round
-    VehicleData  _latestData;                    // Most recently completed round
+    uint8_t      _pollIndex;        // Current PID index within _POLL_PID_COUNT
+    uint32_t     _pollWaitStartMs;  // When the current PID's wait started
+    VehicleData  _pendingData;      // Data being assembled this round
+    VehicleData  _latestData;       // Most recently completed round
     bool         _hasCompletedRound;
-    uint32_t     _lastAnswerMs[7];               // Last time the ECU answered each polled PID
+    uint32_t     _lastAnswerMs[7];  // Last time the ECU answered each polled PID
     bool         _everAnswered[7];
-    uint32_t     _pollIntervalMs;                // Spacing between rounds (not between PIDs)
+    uint32_t     _pollIntervalMs;   // Spacing between rounds (not between PIDs)
     uint32_t     _lastRoundStartMs;
 
     ObdDiagnosticState _diagnosticState;
@@ -172,8 +172,8 @@ private:
     uint8_t _dtcPayload[1 + (2 * MAX_DTC_COUNT)];
     CtIsoTpReassembly _dtcReassembly;
 
-    void _pollStartNextPid();                                                         // Sends the current PID's request (non-blocking)
-    void _pollCheckResponse();                                                        // Non-blocking receive-queue check
+    void _pollStartNextPid();   // Sends the current PID's request (non-blocking)
+    void _pollCheckResponse();  // Non-blocking receive-queue check
     void _applyPidToData(uint8_t pid, const ObdResponse& resp, VehicleData& data);
     bool _startDiagnosticRequest(uint8_t service, ObdDiagnosticOperation operation);
     void _updateDiagnostic();

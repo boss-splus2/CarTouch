@@ -9,13 +9,13 @@
 class SdStorage {
 public:
     enum State : uint8_t { SD_DISABLED, NOT_PRESENT, READY, ERROR_STATE };
-    void begin();                 // read pin from NVS, try one mount
-    void update();                // call from loop(); rate-limited, no blocking retries
+    void begin();            // read pin from NVS, try one mount
+    void update();           // call from loop(); rate-limited, no blocking retries
     State state() const { return _state; }
     int  csPin() const { return _cs; }
     uint64_t totalBytes() const { return _total; }
     uint64_t freeBytes() const;
-    bool setCsPin(int pin);       // validates, stores in NVS, remounts. -1 disables.
+    bool setCsPin(int pin);  // validates, stores in NVS, remounts. -1 disables.
     const char* stateText() const;
 private:
     bool _mount();

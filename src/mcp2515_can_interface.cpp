@@ -8,6 +8,10 @@
 #include "ct_time.h"
 #include "ct_tx_guard.h"
 
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Bitrate mapping
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 static bool mapMcpBitrate(uint32_t bitrate, CAN_SPEED& speed) {
     switch (bitrate) {
         case 100000: speed = CAN_100KBPS; return true;
@@ -18,6 +22,10 @@ static bool mapMcpBitrate(uint32_t bitrate, CAN_SPEED& speed) {
         default: return false;
     }
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Construction and lifecycle
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 Mcp2515CanInterface::Mcp2515CanInterface(uint8_t csPin, uint8_t intPin,
                                          uint32_t speed, bool listenOnly)
@@ -84,6 +92,10 @@ void Mcp2515CanInterface::end() {
     if (_driver && _initialized) _driver->setSleepMode();
     _initialized = false;
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Send and receive
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool Mcp2515CanInterface::sendMessage(const CanMessage& msg, uint32_t) {
     const CtTxGuardResult admission = ctTxGuard(_initialized, _listenOnly, msg.length);
@@ -155,6 +167,10 @@ void Mcp2515CanInterface::flushRxQueue() {
     CanMessage msg;
     while (receiveMessageNonBlocking(msg)) {}
 }
+
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+// □□□□□□□□□□ Status, recovery and diagnostics
+// ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 bool Mcp2515CanInterface::isActive() {
     return _initialized;

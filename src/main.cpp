@@ -139,7 +139,7 @@ uint32_t lastDataUpdateTime = 0;
 uint32_t lastActivityTime   = 0;
 uint32_t lastWakeTime       = 0;
 static constexpr uint32_t WAKE_OBD_TX_HOLD_MS = 1000;
-uint32_t    obdReadInterval    = 200;            // OBD poll interval, ms
+uint32_t    obdReadInterval    = 200;  // OBD poll interval, ms
 DeviceMode  currentMode        = MODE_ACTIVE;
 
 // Task watchdog timeout. If any stage of loop() stalls longer than this
@@ -153,8 +153,8 @@ DeviceMode  currentMode        = MODE_ACTIVE;
 
 void setup();
 void loop();
-void handleCommand(const char* command);      // thread-safe: enqueue only
-void processCommand(const char* command);     // runs in loop() task
+void handleCommand(const char* command);   // thread-safe: enqueue only
+void processCommand(const char* command);  // runs in loop() task
 void drainCommandQueue();
 void processSerialConsole();
 void processSerialCommand(const char* command);
